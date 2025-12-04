@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { MessageList } from '@/components/mail/MessageList';
 import { MessageDetail } from '@/components/mail/MessageDetail';
-import { useInboxMessages, Message, useMessage } from '@/hooks/useMessages';
-import { Loader2, Inbox } from 'lucide-react';
+import { useSentMessages, Message, useMessage } from '@/hooks/useMessages';
+import { Loader2, Send } from 'lucide-react';
 
-export default function InboxPage() {
-  const { data: messages, isLoading } = useInboxMessages();
+export default function SentPage() {
+  const { data: messages, isLoading } = useSentMessages();
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const { data: selectedMessage } = useMessage(selectedMessageId ?? undefined);
 
@@ -31,20 +31,15 @@ export default function InboxPage() {
         <div className="w-full md:w-96 border-r border-border overflow-auto">
           <div className="p-4 border-b border-border">
             <div className="flex items-center gap-2">
-              <Inbox className="h-5 w-5 text-primary" />
-              <h1 className="font-display font-semibold text-lg">Inbox</h1>
-              {messages && messages.length > 0 && (
-                <span className="text-sm text-muted-foreground">
-                  ({messages.filter(m => !m.is_read).length} unread)
-                </span>
-              )}
+              <Send className="h-5 w-5 text-primary" />
+              <h1 className="font-display font-semibold text-lg">Sent</h1>
             </div>
           </div>
           <MessageList
             messages={messages || []}
             selectedId={selectedMessageId ?? undefined}
             onSelect={handleSelectMessage}
-            showSender={true}
+            showSender={false}
           />
         </div>
 
@@ -58,7 +53,7 @@ export default function InboxPage() {
           ) : (
             <div className="flex-1 flex items-center justify-center text-muted-foreground">
               <div className="text-center">
-                <Inbox className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <Send className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Select a message to read</p>
               </div>
             </div>
