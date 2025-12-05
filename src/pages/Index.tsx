@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { MessageList } from '@/components/mail/MessageList';
-import { MessageDetail } from '@/components/mail/MessageDetail';
-import { useInboxMessages, Message, useMessage } from '@/hooks/useMessages';
+import { MessageThread } from '@/components/mail/MessageThread';
+import { useInboxMessages, Message } from '@/hooks/useMessages';
 import { Loader2, Inbox } from 'lucide-react';
 
 export default function InboxPage() {
   const { data: messages, isLoading } = useInboxMessages();
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
-  const { data: selectedMessage } = useMessage(selectedMessageId ?? undefined);
 
   const handleSelectMessage = (message: Message) => {
     setSelectedMessageId(message.id);
@@ -50,9 +49,9 @@ export default function InboxPage() {
 
         {/* Message Detail */}
         <div className="hidden md:flex flex-1 flex-col">
-          {selectedMessage ? (
-            <MessageDetail
-              message={selectedMessage}
+          {selectedMessageId ? (
+            <MessageThread
+              messageId={selectedMessageId}
               onBack={() => setSelectedMessageId(null)}
             />
           ) : (

@@ -138,7 +138,7 @@ export function useSendMessage() {
       if (attachments && attachments.length > 0) {
         for (const file of attachments) {
           const filePath = `${user!.id}/${message.id}/${file.name}`;
-          
+
           const { error: uploadError } = await supabase.storage
             .from('attachments')
             .upload(filePath, file);
@@ -165,6 +165,7 @@ export function useSendMessage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages'] });
+      queryClient.invalidateQueries({ queryKey: ['conversation'] });
     },
   });
 }
@@ -194,7 +195,7 @@ export function useDeleteMessage() {
   return useMutation({
     mutationFn: async ({ messageId, isSender }: { messageId: string; isSender: boolean }) => {
       const updateField = isSender ? 'is_deleted_sender' : 'is_deleted_receiver';
-      
+
       const { error } = await supabase
         .from('messages')
         .update({ [updateField]: true })
@@ -204,6 +205,100 @@ export function useDeleteMessage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages'] });
+    },
+  });
+}
+
+export function cleanSubject(subject: string): string {
+  if (!subject) return '';
+  return subject
+    .replace(/^(Re|Fwd|FW|RE|FWD):\s*/i, '') // Remove standard prefixes
+    .replace(/^\[.*?\]\s*/, '') // Remove [Tags]
+    .trim();
+}
+
+export function useConversation(messageId: string | undefined) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['conversation', messageId],
+    queryFn: async () => {
+      // 1. Fetch the selected message to get context (subject, participants)
+      const { data: currentMessage, error: fetchError } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('id', messageId!)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const baseSubject = cleanSubject(currentMessage.subject);
+      const otherUserId = currentMessage.from_user_id === user!.id
+        ? currentMessage.to_user_id
+        : currentMessage.from_user_id;
+
+      // 2. Fetch all messages in the conversation
+      // Match: (A->B OR B->A) AND similar subject
+      const { data: messages, error: listError } = await supabase
+        .from('messages')
+        .select(`
+          *,
+          from_profile:profiles!messages_from_user_id_fkey(full_name, email),
+          to_profile:profiles!messages_to_user_id_fkey(full_name, email),
+          attachments(*)
+        `)
+        .or(`and(from_user_id.eq.${user!.id},to_user_id.eq.${otherUserId}),and(from_user_id.eq.${otherUserId},to_user_id.eq.${user!.id})`)
+        .order('created_at', { ascending: true }); // Oldest first
+
+      if (listError) throw listError;
+
+      // Filter in memory for subject match (regex is hard in postgrest)
+      // Also filter out deleted messages
+      const conversationMessages = (messages as Message[]).filter(msg => {
+        // Subject match
+        const msgBaseSubject = cleanSubject(msg.subject);
+        if (msgBaseSubject !== baseSubject && !msg.subject.includes(baseSubject)) {
+          // allow partial match if subject became "Re: Re: subject"
+          // But strict base subject match is safer for "Re: hello" vs "Re: hello world"
+          // Let's stick to cleanSubject equality for now, or startWith
+          // The user spec says "Same base subject"
+          return false;
+        }
+
+        // Deletion check
+        if (msg.from_user_id === user!.id && msg.is_deleted_sender) return false;
+        if (msg.to_user_id === user!.id && msg.is_deleted_receiver) return false;
+
+        return true;
+      });
+
+      return {
+        messages: conversationMessages,
+        baseSubject,
+        otherUserId
+      };
+    },
+    enabled: !!messageId && !!user,
+  });
+}
+
+export function useMarkMessagesAsRead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (messageIds: string[]) => {
+      if (messageIds.length === 0) return;
+
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .in('id', messageIds);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
+      queryClient.invalidateQueries({ queryKey: ['conversation'] });
     },
   });
 }
