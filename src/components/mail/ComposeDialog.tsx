@@ -75,14 +75,14 @@ export function ComposeDialog({ open, onOpenChange, replyTo }: ComposeDialogProp
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    
+
     for (const file of files) {
       if (file.size > MAX_FILE_SIZE) {
         toast.error(`File "${file.name}" exceeds 25MB limit`);
         return;
       }
     }
-    
+
     setAttachments((prev) => [...prev, ...files]);
     e.target.value = '';
   };
@@ -113,12 +113,12 @@ export function ComposeDialog({ open, onOpenChange, replyTo }: ComposeDialogProp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] p-0 gap-0">
+      <DialogContent className="w-[95vw] sm:max-w-[640px] p-0 gap-0 max-h-[90vh] flex flex-col">
         <DialogHeader className="p-4 pb-2 border-b border-border">
           <DialogTitle className="font-display">New Message</DialogTitle>
         </DialogHeader>
 
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 overflow-y-auto flex-1">
           {/* To Field */}
           <div className="space-y-2">
             <Label>To</Label>
