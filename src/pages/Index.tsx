@@ -25,9 +25,9 @@ export default function InboxPage() {
 
   return (
     <AppLayout>
-      <div className="flex h-full">
+      <div className="flex h-full overflow-hidden">
         {/* Message List */}
-        <div className="w-full md:w-96 border-r border-border overflow-auto">
+        <div className="w-full md:w-96 border-r border-border overflow-auto h-full">
           <div className="p-4 border-b border-border">
             <div className="flex items-center gap-2">
               <Inbox className="h-5 w-5 text-primary" />

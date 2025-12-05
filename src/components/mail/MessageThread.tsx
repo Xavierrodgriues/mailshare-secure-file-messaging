@@ -112,7 +112,7 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                 </div>
 
                 {/* Thread Content */}
-                <div className="flex-1 overflow-auto p-4 space-y-6">
+                <div className="flex-1 overflow-auto p-4 space-y-6 no-scrollbar">
                     {messages.map((msg, index) => {
                         const isMe = msg.from_user_id === user?.id;
                         const senderName = msg.from_profile?.full_name || 'Unknown';
