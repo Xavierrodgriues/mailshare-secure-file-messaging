@@ -10,14 +10,31 @@ import { Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 
 const signUpSchema = z.object({
-  fullName: z.string().min(2, 'Name must be at least 2 characters').max(100),
-  email: z.string().email('Please enter a valid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  fullName: z
+    .string()
+    .min(2, 'Name must be at least 2 characters')
+    .max(100),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email('Please enter a valid email')
+    .refine(
+      (email) => email.endsWith('@yuvii.com'),
+      { message: 'Email must be a @yuvii.com address' }
+    ),
+  password: z
+    .string()
+    .min(6, 'Password must be at least 6 characters'),
   confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+}).refine(
+  (data) => data.password === data.confirmPassword,
+  {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  }
+);
+
 
 const signInSchema = z.object({
   email: z.string().email('Please enter a valid email'),
