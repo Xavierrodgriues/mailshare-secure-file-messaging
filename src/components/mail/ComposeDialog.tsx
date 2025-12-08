@@ -37,11 +37,14 @@ interface ComposeDialogProps {
     email: string;
     subject: string;
   };
+  draftId?: string;
 }
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
-export function ComposeDialog({ open, onOpenChange, replyTo }: ComposeDialogProps) {
+import { useDrafts } from '@/hooks/useDrafts';
+
+export function ComposeDialog({ open, onOpenChange, replyTo, draftId }: ComposeDialogProps) {
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
@@ -51,9 +54,32 @@ export function ComposeDialog({ open, onOpenChange, replyTo }: ComposeDialogProp
 
   const { data: profiles = [] } = useProfiles(searchTerm);
   const sendMessage = useSendMessage();
+  const { saveDraftAsync, deleteDraft, getDraft } = useDrafts();
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
 
+  // Load draft if provided
   useEffect(() => {
-    if (replyTo && open) {
+    if (draftId && open) {
+      const draft = getDraft(draftId);
+      if (draft) {
+        setSubject(draft.subject);
+        setBody(draft.body);
+        setCurrentDraftId(draft.id);
+        if (draft.toUserId && draft.toUserEmail && draft.toUserName) {
+          setSelectedUser({
+            id: draft.toUserId,
+            full_name: draft.toUserName,
+            email: draft.toUserEmail,
+            avatar_url: null, // Drafts don't store avatar currently
+          } as Profile);
+        }
+      }
+    }
+  }, [draftId, open]);
+
+  // Handle Reply setup
+  useEffect(() => {
+    if (replyTo && open && !draftId) {
       setSelectedUser({
         id: replyTo.userId,
         full_name: replyTo.name,
@@ -62,14 +88,38 @@ export function ComposeDialog({ open, onOpenChange, replyTo }: ComposeDialogProp
       });
       setSubject(replyTo.subject.startsWith('Re:') ? replyTo.subject : `Re: ${replyTo.subject}`);
     }
-  }, [replyTo, open]);
+  }, [replyTo, open, draftId]);
+
+  // Auto-save draft
+  useEffect(() => {
+    if (!open) return;
+
+    // Don't save if empty and no previous draft ID
+    if (!subject && !body && !selectedUser && !currentDraftId) return;
+
+    const timeoutId = setTimeout(async () => {
+      const id = await saveDraftAsync({
+        id: currentDraftId || '',
+        toUserId: selectedUser?.id,
+        toUserEmail: selectedUser?.email,
+        toUserName: selectedUser?.full_name,
+        subject,
+        body,
+      });
+      if (id) setCurrentDraftId(id);
+    }, 1000);
+
+    return () => clearTimeout(timeoutId);
+  }, [subject, body, selectedUser, open, currentDraftId, saveDraftAsync]);
 
   const handleClose = () => {
+    // Just close, let the draft persist
     setSelectedUser(null);
     setSubject('');
     setBody('');
     setAttachments([]);
     setSearchTerm('');
+    setCurrentDraftId(null);
     onOpenChange(false);
   };
 
@@ -104,6 +154,9 @@ export function ComposeDialog({ open, onOpenChange, replyTo }: ComposeDialogProp
         body,
         attachments: attachments.length > 0 ? attachments : undefined,
       });
+      if (currentDraftId) {
+        deleteDraft(currentDraftId);
+      }
       toast.success('Message sent!');
       handleClose();
     } catch (error) {

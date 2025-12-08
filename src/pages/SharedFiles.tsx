@@ -40,10 +40,84 @@ export default function SharedFilesPage() {
     );
   }
 
-  const FileTable = ({ files, showColumn }: { files: typeof filesSharedByMe; showColumn: 'sender' | 'recipient' }) => (
-    <div className="rounded-lg border border-border overflow-hidden">
+  // const FileTable = ({ files, showColumn }: { files: typeof filesSharedByMe; showColumn: 'sender' | 'recipient' }) => (
+  //   <div className="rounded-lg border border-border overflow-hidden">
+  //     <table className="w-full">
+  //       <thead className="bg-muted/50">
+  //         <tr>
+  //           <th className="text-left p-4 text-sm font-medium text-muted-foreground">File</th>
+  //           <th className="text-left p-4 text-sm font-medium text-muted-foreground hidden md:table-cell">
+  //             {showColumn === 'sender' ? 'From' : 'To'}
+  //           </th>
+  //           <th className="text-left p-4 text-sm font-medium text-muted-foreground hidden md:table-cell">Size</th>
+  //           <th className="text-left p-4 text-sm font-medium text-muted-foreground hidden md:table-cell">Date</th>
+  //           <th className="text-right p-4 text-sm font-medium text-muted-foreground">Action</th>
+  //         </tr>
+  //       </thead>
+  //       <tbody className="divide-y divide-border">
+  //         {files.length === 0 ? (
+  //           <tr>
+  //             <td colSpan={5} className="p-8 text-center text-muted-foreground">
+  //               No files found
+  //             </td>
+  //           </tr>
+  //         ) : (
+  //           files.map((file) => (
+  //             <tr key={file.id} className="hover:bg-muted/30 transition-colors">
+  //               <td className="p-4">
+  //                 <div className="flex items-center gap-3">
+  //                   <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+  //                     <Paperclip className="h-5 w-5 text-primary" />
+  //                   </div>
+  //                   <div className="min-w-0">
+  //                     <p className="font-medium truncate">{file.file_name}</p>
+  //                     <p className="text-xs text-muted-foreground md:hidden">
+  //                       {formatFileSize(file.file_size)}
+  //                     </p>
+  //                   </div>
+  //                 </div>
+  //               </td>
+  //               <td className="p-4 hidden md:table-cell">
+  //                 <span className="text-sm">
+  //                   {showColumn === 'sender'
+  //                     ? file.message.from_profile.full_name
+  //                     : file.message.to_profile.full_name}
+  //                 </span>
+  //               </td>
+  //               <td className="p-4 hidden md:table-cell">
+  //                 <span className="text-sm text-muted-foreground">
+  //                   {formatFileSize(file.file_size)}
+  //                 </span>
+  //               </td>
+  //               <td className="p-4 hidden md:table-cell">
+  //                 <span className="text-sm text-muted-foreground">
+  //                   {format(new Date(file.created_at), 'MMM d, yyyy')}
+  //                 </span>
+  //               </td>
+  //               <td className="p-4 text-right">
+  //                 <Button
+  //                   variant="ghost"
+  //                   size="sm"
+  //                   onClick={() => handleDownload(file.file_path, file.file_name)}
+  //                 >
+  //                   <Download className="h-4 w-4" />
+  //                 </Button>
+  //               </td>
+  //             </tr>
+  //           ))
+  //         )}
+  //       </tbody>
+  //     </table>
+  //   </div>
+  // );
+    const FileTable = ({ files, showColumn }: { files: typeof filesSharedByMe; showColumn: 'sender' | 'recipient' }) => (
+  <div className="rounded-lg border border-border overflow-hidden">
+
+    {/* 👉 Scrollable container */}
+    <div className="max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
+
       <table className="w-full">
-        <thead className="bg-muted/50">
+        <thead className="bg-muted/90 sticky top-0 z-10">
           <tr>
             <th className="text-left p-4 text-sm font-medium text-muted-foreground">File</th>
             <th className="text-left p-4 text-sm font-medium text-muted-foreground hidden md:table-cell">
@@ -108,8 +182,10 @@ export default function SharedFilesPage() {
           )}
         </tbody>
       </table>
+
     </div>
-  );
+  </div>
+);
 
   return (
     <AppLayout>
