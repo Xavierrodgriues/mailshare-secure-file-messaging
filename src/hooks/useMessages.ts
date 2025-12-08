@@ -34,6 +34,17 @@ export interface Attachment {
   created_at: string;
 }
 
+// Response we expect back from the r2-upload edge function
+interface R2UploadResult {
+  key: string;   // R2 object key
+  url: string;   // public or signed URL (from edge function)
+  name: string;
+  size: number;
+  type: string;
+  messageId?: string;
+  userId?: string;
+}
+
 export function useInboxMessages() {
   const { user } = useAuth();
 
@@ -104,6 +115,9 @@ export function useMessage(messageId: string | undefined) {
   });
 }
 
+/**
+ * UPDATED: uses r2-upload edge function instead of supabase.storage
+ */
 export function useSendMessage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -120,11 +134,13 @@ export function useSendMessage() {
       body: string;
       attachments?: File[];
     }) => {
-      // Create message
+      if (!user) throw new Error('Not authenticated');
+
+      // 1) Create message
       const { data: message, error: messageError } = await supabase
         .from('messages')
         .insert({
-          from_user_id: user!.id,
+          from_user_id: user.id,
           to_user_id: toUserId,
           subject,
           body,
@@ -134,27 +150,52 @@ export function useSendMessage() {
 
       if (messageError) throw messageError;
 
-      // Upload attachments if any
+      // 2) Upload attachments to Cloudflare R2 via edge function
       if (attachments && attachments.length > 0) {
+        // get access token for auth header
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+
+        if (sessionError) throw sessionError;
+        const accessToken = session?.access_token ?? '';
+
         for (const file of attachments) {
-          const filePath = `${user!.id}/${message.id}/${file.name}`;
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('messageId', message.id);
+          formData.append('userId', user.id);
 
-          const { error: uploadError } = await supabase.storage
-            .from('attachments')
-            .upload(filePath, file);
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/r2-upload`,
+            {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+              },
+              body: formData,
+            }
+          );
 
-          if (uploadError) throw uploadError;
+          if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`R2 upload failed: ${errText}`);
+          }
 
-          // Create attachment record
+          const r2: R2UploadResult = await response.json();
+
+          // 3) Create attachment row pointing to R2
           const { error: attachmentError } = await supabase
             .from('attachments')
             .insert({
               message_id: message.id,
-              file_name: file.name,
-              file_path: filePath,
-              file_size: file.size,
-              file_type: file.type,
-              uploaded_by_user_id: user!.id,
+              file_name: r2.name,
+              file_path: r2.key,      // store R2 object key here
+              file_size: r2.size,
+              file_type: r2.type,
+              uploaded_by_user_id: user.id,
+              // (optional) add a 'public_url' column later and store r2.url
             });
 
           if (attachmentError) throw attachmentError;
@@ -193,7 +234,13 @@ export function useDeleteMessage() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ messageId, isSender }: { messageId: string; isSender: boolean }) => {
+    mutationFn: async ({
+      messageId,
+      isSender,
+    }: {
+      messageId: string;
+      isSender: boolean;
+    }) => {
       const updateField = isSender ? 'is_deleted_sender' : 'is_deleted_receiver';
 
       const { error } = await supabase
@@ -233,12 +280,12 @@ export function useConversation(messageId: string | undefined) {
       if (fetchError) throw fetchError;
 
       const baseSubject = cleanSubject(currentMessage.subject);
-      const otherUserId = currentMessage.from_user_id === user!.id
-        ? currentMessage.to_user_id
-        : currentMessage.from_user_id;
+      const otherUserId =
+        currentMessage.from_user_id === user!.id
+          ? currentMessage.to_user_id
+          : currentMessage.from_user_id;
 
       // 2. Fetch all messages in the conversation
-      // Match: (A->B OR B->A) AND similar subject
       const { data: messages, error: listError } = await supabase
         .from('messages')
         .select(`
@@ -247,25 +294,22 @@ export function useConversation(messageId: string | undefined) {
           to_profile:profiles!messages_to_user_id_fkey(full_name, email),
           attachments(*)
         `)
-        .or(`and(from_user_id.eq.${user!.id},to_user_id.eq.${otherUserId}),and(from_user_id.eq.${otherUserId},to_user_id.eq.${user!.id})`)
+        .or(
+          `and(from_user_id.eq.${user!.id},to_user_id.eq.${otherUserId}),and(from_user_id.eq.${otherUserId},to_user_id.eq.${user!.id})`
+        )
         .order('created_at', { ascending: true }); // Oldest first
 
       if (listError) throw listError;
 
-      // Filter in memory for subject match (regex is hard in postgrest)
-      // Also filter out deleted messages
-      const conversationMessages = (messages as Message[]).filter(msg => {
-        // Subject match
+      const conversationMessages = (messages as Message[]).filter((msg) => {
         const msgBaseSubject = cleanSubject(msg.subject);
-        if (msgBaseSubject !== baseSubject && !msg.subject.includes(baseSubject)) {
-          // allow partial match if subject became "Re: Re: subject"
-          // But strict base subject match is safer for "Re: hello" vs "Re: hello world"
-          // Let's stick to cleanSubject equality for now, or startWith
-          // The user spec says "Same base subject"
+        if (
+          msgBaseSubject !== baseSubject &&
+          !msg.subject.includes(baseSubject)
+        ) {
           return false;
         }
 
-        // Deletion check
         if (msg.from_user_id === user!.id && msg.is_deleted_sender) return false;
         if (msg.to_user_id === user!.id && msg.is_deleted_receiver) return false;
 
@@ -275,7 +319,7 @@ export function useConversation(messageId: string | undefined) {
       return {
         messages: conversationMessages,
         baseSubject,
-        otherUserId
+        otherUserId,
       };
     },
     enabled: !!messageId && !!user,
