@@ -44,13 +44,15 @@ export function SidebarContent({
     <>
       <div className="flex flex-col h-full">
         {/* Logo */}
-        <div className="flex items-center gap-3 p-4 border-b border-border">
-          <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
-            <Mail className="h-5 w-5 text-primary-foreground" />
-          </div>
-          {(!collapsed || isMobile) && (
-            <span className="font-display font-bold text-lg">MailShare</span>
-          )}
+        <div className={cn("flex items-center gap-3 p-4 border-b border-border", collapsed && !isMobile && "justify-center")}>
+          <img
+            src="/footer-logo.png"
+            alt="MailShare"
+            className={cn(
+              "object-contain transition-all duration-300",
+              collapsed && !isMobile ? "h-8 w-8" : "h-8 w-auto"
+            )}
+          />
         </div>
 
         {/* Compose Button */}
