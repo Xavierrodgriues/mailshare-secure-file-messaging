@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { MessageList } from '@/components/mail/MessageList';
 import { MessageThread } from '@/components/mail/MessageThread';
@@ -27,8 +28,13 @@ export default function SentPage() {
     <AppLayout>
       <div className="flex h-full">
         {/* Message List */}
-        <div className="w-full md:w-96 border-r border-border overflow-auto">
-          <div className="p-4 border-b border-border">
+        <div
+          className={cn(
+            "w-full md:w-96 border-r border-border overflow-auto h-full bg-background/50",
+            selectedMessageId ? "hidden md:block" : "block bg-background"
+          )}
+        >
+          <div className="p-4 border-b border-border sticky top-0 bg-background/95 backdrop-blur z-10">
             <div className="flex items-center gap-2">
               <Send className="h-5 w-5 text-primary" />
               <h1 className="font-display font-semibold text-lg">Sent</h1>
@@ -43,7 +49,12 @@ export default function SentPage() {
         </div>
 
         {/* Message Detail */}
-        <div className="hidden md:flex flex-1 flex-col">
+        <div
+          className={cn(
+            "flex-1 flex-col h-full overflow-hidden bg-background",
+            selectedMessageId ? "flex" : "hidden md:flex"
+          )}
+        >
           {selectedMessageId ? (
             <MessageThread
               messageId={selectedMessageId}

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -8,11 +9,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, User, Search } from 'lucide-react';
+import { LogOut, User, Search, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
+import { SidebarContent } from './Sidebar';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 export function Header() {
   const { profile, signOut } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const initials = profile?.full_name
     ?.split(' ')
@@ -22,13 +27,30 @@ export function Header() {
     .slice(0, 2) || 'U';
 
   return (
-    <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between gap-4">
+    <header className="h-16 border-b border-border bg-card px-4 md:px-6 flex items-center justify-between gap-4 sticky top-0 z-20">
+      {/* Mobile Menu */}
+      <div className="md:hidden">
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="-ml-2">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-72">
+            <VisuallyHidden>
+              <SheetTitle>Navigation Menu</SheetTitle>
+            </VisuallyHidden>
+            <SidebarContent isMobile onCloseMobile={() => setMobileOpen(false)} />
+          </SheetContent>
+        </Sheet>
+      </div>
+
       {/* Search */}
       <div className="flex-1 max-w-xl">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search messages..."
+            placeholder="Search..."
             className="pl-10 bg-muted/50 border-0 focus-visible:ring-1"
           />
         </div>

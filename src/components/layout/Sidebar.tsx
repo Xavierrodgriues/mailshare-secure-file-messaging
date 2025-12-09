@@ -2,12 +2,12 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { 
-  Inbox, 
-  Send, 
-  FileText, 
-  Trash2, 
-  FolderOpen, 
+import {
+  Inbox,
+  Send,
+  FileText,
+  Trash2,
+  FolderOpen,
   Plus,
   Mail,
   ChevronLeft,
@@ -26,25 +26,29 @@ const fileItems = [
   { path: '/shared-files', label: 'Shared Files', icon: FolderOpen },
 ];
 
-export function Sidebar() {
+export function SidebarContent({
+  collapsed,
+  onCollapse,
+  isMobile = false,
+  onCloseMobile
+}: {
+  collapsed?: boolean;
+  onCollapse?: (collapsed: boolean) => void;
+  isMobile?: boolean;
+  onCloseMobile?: () => void;
+}) {
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
 
   return (
     <>
-      <aside
-        className={cn(
-          "flex flex-col border-r border-border bg-card transition-all duration-300",
-          collapsed ? "w-[72px]" : "w-64"
-        )}
-      >
+      <div className="flex flex-col h-full">
         {/* Logo */}
         <div className="flex items-center gap-3 p-4 border-b border-border">
           <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
             <Mail className="h-5 w-5 text-primary-foreground" />
           </div>
-          {!collapsed && (
+          {(!collapsed || isMobile) && (
             <span className="font-display font-bold text-lg">MailShare</span>
           )}
         </div>
@@ -53,26 +57,29 @@ export function Sidebar() {
         <div className="p-3">
           <Button
             variant="compose"
-            className={cn("w-full", collapsed && "px-0")}
-            onClick={() => setComposeOpen(true)}
+            className={cn("w-full", collapsed && !isMobile && "px-0")}
+            onClick={() => {
+              setComposeOpen(true);
+              if (isMobile && onCloseMobile) onCloseMobile();
+            }}
           >
             <Plus className="h-5 w-5" />
-            {!collapsed && <span>Compose</span>}
+            {(!collapsed || isMobile) && <span>Compose</span>}
           </Button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-2 space-y-1">
+        <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
-              <NavLink key={item.path} to={item.path}>
+              <NavLink key={item.path} to={item.path} onClick={() => isMobile && onCloseMobile?.()}>
                 <Button
                   variant={isActive ? 'sidebar-active' : 'sidebar'}
-                  className={cn(collapsed && "justify-center px-0")}
+                  className={cn(collapsed && !isMobile && "justify-center px-0")}
                 >
                   <item.icon className="h-5 w-5 flex-shrink-0" />
-                  {!collapsed && <span>{item.label}</span>}
+                  {(!collapsed || isMobile) && <span>{item.label}</span>}
                 </Button>
               </NavLink>
             );
@@ -84,7 +91,7 @@ export function Sidebar() {
           </div>
 
           {/* Files Section */}
-          {!collapsed && (
+          {(!collapsed || isMobile) && (
             <p className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Files
             </p>
@@ -92,40 +99,57 @@ export function Sidebar() {
           {fileItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
-              <NavLink key={item.path} to={item.path}>
+              <NavLink key={item.path} to={item.path} onClick={() => isMobile && onCloseMobile?.()}>
                 <Button
                   variant={isActive ? 'sidebar-active' : 'sidebar'}
-                  className={cn(collapsed && "justify-center px-0")}
+                  className={cn(collapsed && !isMobile && "justify-center px-0")}
                 >
                   <item.icon className="h-5 w-5 flex-shrink-0" />
-                  {!collapsed && <span>{item.label}</span>}
+                  {(!collapsed || isMobile) && <span>{item.label}</span>}
                 </Button>
               </NavLink>
             );
           })}
         </nav>
 
-        {/* Collapse Toggle */}
-        <div className="p-3 border-t border-border">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn("w-full", collapsed && "px-0")}
-            onClick={() => setCollapsed(!collapsed)}
-          >
-            {collapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <>
-                <ChevronLeft className="h-4 w-4" />
-                <span>Collapse</span>
-              </>
-            )}
-          </Button>
-        </div>
-      </aside>
+        {/* Collapse Toggle (Desktop only) */}
+        {!isMobile && onCollapse && (
+          <div className="p-3 border-t border-border mt-auto">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn("w-full", collapsed && "px-0")}
+              onClick={() => onCollapse(!collapsed)}
+            >
+              {collapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <>
+                  <ChevronLeft className="h-4 w-4" />
+                  <span>Collapse</span>
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+      </div>
 
       <ComposeDialog open={composeOpen} onOpenChange={setComposeOpen} />
     </>
+  );
+}
+
+export function Sidebar() {
+  const [collapsed, setCollapsed] = useState(false);
+
+  return (
+    <aside
+      className={cn(
+        "hidden md:flex flex-col border-r border-border bg-card transition-all duration-300",
+        collapsed ? "w-[72px]" : "w-64"
+      )}
+    >
+      <SidebarContent collapsed={collapsed} onCollapse={setCollapsed} />
+    </aside>
   );
 }

@@ -98,7 +98,7 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                 <div className="flex items-center justify-between p-4 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
                     <div className="flex items-center gap-2 overflow-hidden">
                         {onBack && (
-                            <Button variant="ghost" size="icon" onClick={onBack}>
+                            <Button variant="ghost" size="icon" onClick={onBack} className="md:hidden mr-2">
                                 <ArrowLeft className="h-4 w-4" />
                             </Button>
                         )}
