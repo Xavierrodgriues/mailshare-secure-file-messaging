@@ -45,9 +45,9 @@ export default function SharedFilesPage() {
       {/* Scrollable container with bottom padding for scrollbar visibility */}
       <div className="overflow-y-auto max-h-[calc(100vh-250px)] scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
         <table className="w-full">
-          <thead className="bg-muted/90 sticky top-0 z-10 backdrop-blur-sm">
+          <thead className="bg-muted/90 sticky top-0 z-10 backdrop-blur-sm hidden md:table-header-group">
             <tr>
-              <th className="text-left p-4 text-sm font-medium text-muted-foreground w-full md:w-auto">File</th>
+              <th className="text-left p-4 text-sm font-medium text-muted-foreground md:w-auto">File</th>
               <th className="text-left p-4 text-sm font-medium text-muted-foreground hidden md:table-cell">
                 {showColumn === 'sender' ? 'From' : 'To'}
               </th>
@@ -66,23 +66,17 @@ export default function SharedFilesPage() {
             ) : (
               files.map((file) => (
                 <tr key={file.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <td className="p-4 align-top md:align-middle">
+                    <div className="flex items-start md:items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1 md:mt-0">
                         <Paperclip className="h-5 w-5 text-primary" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium truncate">{file.file_name}</p>
+                        <p className="font-medium text-sm break-all">{file.file_name}</p>
                         {/* Mobile-only stacked info */}
-                        <div className="flex flex-col gap-0.5 md:hidden">
+                        <div className="flex flex-col gap-0.5 md:hidden mt-1">
                           <span className="text-xs text-muted-foreground">
-                            {formatFileSize(file.file_size)} • {format(new Date(file.created_at), 'MMM d')}
-                          </span>
-                          <span className="text-xs text-muted-foreground truncate">
-                            {showColumn === 'sender' ? 'From: ' : 'To: '}
-                            {showColumn === 'sender'
-                              ? file.message.from_profile.full_name
-                              : file.message.to_profile.full_name}
+                            {formatFileSize(file.file_size)} • {format(new Date(file.created_at), 'MMM d')} • {showColumn === 'sender' ? 'From' : 'To'} {showColumn === 'sender' ? file.message.from_profile.full_name : file.message.to_profile.full_name}
                           </span>
                         </div>
                       </div>
