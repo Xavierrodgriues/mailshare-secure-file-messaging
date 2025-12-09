@@ -53,22 +53,26 @@ export function useSharedFiles() {
   });
 }
 
+// 🔽 UPDATED: use supabase.functions.invoke so JWT is automatically attached
 export function useDownloadFile() {
   return async (filePath: string, fileName: string) => {
-    const { data, error } = await supabase.storage
-      .from('attachments')
-      .download(filePath);
+    const { data, error } = await supabase.functions.invoke<{
+      url: string;
+    }>('r2-download', {
+      body: { key: filePath },
+    });
 
-    if (error) throw error;
+    if (error) {
+      console.error('r2-download error:', error);
+      throw error;
+    }
 
-    // Create download link
-    const url = URL.createObjectURL(data);
+    // data.url is the signed download URL from the edge function
     const a = document.createElement('a');
-    a.href = url;
+    a.href = data.url;
     a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 }
