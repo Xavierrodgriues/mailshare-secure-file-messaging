@@ -47,6 +47,7 @@ export function SidebarContent({
         <div className={cn("flex items-center gap-3 p-4 border-b border-border", collapsed && !isMobile && "justify-center")}>
           <img
             src="/footer-logo.png"
+            style={{ width: "180px", height: "100px" }}
             alt="MailShare"
             className={cn(
               "object-contain transition-all duration-300",
