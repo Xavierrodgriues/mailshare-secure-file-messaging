@@ -54,10 +54,10 @@ export function Header() {
             <p className="text-xs text-muted-foreground">{profile?.email}</p>
           </div>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
+          {/* <DropdownMenuItem>
             <User className="mr-2 h-4 w-4" />
             Profile
-          </DropdownMenuItem>
+          </DropdownMenuItem> */}
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={signOut} className="text-destructive">
             <LogOut className="mr-2 h-4 w-4" />
