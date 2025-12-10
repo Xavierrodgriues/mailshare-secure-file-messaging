@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -345,4 +345,93 @@ export function useMarkMessagesAsRead() {
       queryClient.invalidateQueries({ queryKey: ['conversation'] });
     },
   });
+}
+
+export function useConversationInfinite(messageId: string | undefined) {
+  const { user } = useAuth();
+  const PAGE_SIZE = 20;
+
+  // 1. Fetch metadata first (subject, participants)
+  const metadataQuery = useQuery({
+    queryKey: ['conversation_metadata', messageId],
+    queryFn: async () => {
+      const { data: currentMessage, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('id', messageId!)
+        .single();
+
+      if (error) throw error;
+
+      const baseSubject = cleanSubject(currentMessage.subject);
+      const otherUserId =
+        currentMessage.from_user_id === user!.id
+          ? currentMessage.to_user_id
+          : currentMessage.from_user_id;
+
+      return { baseSubject, otherUserId };
+    },
+    enabled: !!messageId && !!user,
+  });
+
+  // 2. Infinite query for messages
+  const messagesQuery = useInfiniteQuery({
+    queryKey: ['conversation_infinite', messageId],
+    queryFn: async ({ pageParam }) => {
+      const { baseSubject, otherUserId } = metadataQuery.data!;
+
+      let query = supabase
+        .from('messages')
+        .select(`
+          *,
+          from_profile:profiles!messages_from_user_id_fkey(full_name, email),
+          to_profile:profiles!messages_to_user_id_fkey(full_name, email),
+          attachments(*)
+        `)
+        .or(
+          `and(from_user_id.eq.${user!.id},to_user_id.eq.${otherUserId}),and(from_user_id.eq.${otherUserId},to_user_id.eq.${user!.id})`
+        )
+        .order('created_at', { ascending: false }) // Newest first for fetching
+        .limit(PAGE_SIZE);
+
+      // Keyset pagination using created_at
+      if (pageParam) {
+        query = query.lt('created_at', pageParam);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      // Filter by subject and deleted status
+      const filtered = (data as Message[]).filter((msg) => {
+        const msgBaseSubject = cleanSubject(msg.subject);
+        if (
+          msgBaseSubject !== baseSubject &&
+          !msg.subject.includes(baseSubject)
+        ) {
+          return false;
+        }
+
+        if (msg.from_user_id === user!.id && msg.is_deleted_sender) return false;
+        if (msg.to_user_id === user!.id && msg.is_deleted_receiver) return false;
+
+        return true;
+      });
+
+      return filtered;
+    },
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => {
+      if (!lastPage || lastPage.length === 0) return null;
+      return lastPage[lastPage.length - 1].created_at;
+    },
+    enabled: !!metadataQuery.data && !!user,
+  });
+
+  return {
+    ...messagesQuery,
+    baseSubject: metadataQuery.data?.baseSubject,
+    otherUserId: metadataQuery.data?.otherUserId,
+    metadataLoading: metadataQuery.isLoading,
+  };
 }
