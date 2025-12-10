@@ -116,11 +116,12 @@ export default function Auth() {
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary via-primary/90 to-accent items-center justify-center p-12">
         <div className="max-w-md text-primary-foreground">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="h-12 w-12 rounded-xl bg-primary-foreground/20 flex items-center justify-center">
-              <Mail className="h-7 w-7" />
-            </div>
-            <h1 className="text-3xl font-display font-bold">MailShare</h1>
+          <div className="flex items-center justify-center mb-8">
+            <img
+              src="/yuvii-logo.jpeg"
+              alt="Yuvii"
+              className="h-20 w-auto object-contain rounded-xl shadow-lg"
+            />
           </div>
           <p className="text-xl font-medium mb-4">
             Simple, secure messaging with file sharing
@@ -135,11 +136,12 @@ export default function Auth() {
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <Card className="w-full max-w-md border-0 shadow-lg animate-fade-in">
           <CardHeader className="space-y-1 pb-6">
-            <div className="lg:hidden flex items-center gap-2 mb-4">
-              <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-                <Mail className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-display font-bold">MailShare</span>
+            <div className="lg:hidden flex items-center justify-center mb-6">
+              <img
+                src="/yuvii-logo.jpeg"
+                alt="Yuvii"
+                className="h-16 w-auto object-contain rounded-lg"
+              />
             </div>
             <CardTitle className="text-2xl font-display">
               {isLogin ? 'Welcome back' : 'Create an account'}
