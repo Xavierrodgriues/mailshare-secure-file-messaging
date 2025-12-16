@@ -1,14 +1,19 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { MessageList } from '@/components/mail/MessageList';
 import { MessageThread } from '@/components/mail/MessageThread';
 import { useSentMessages, Message } from '@/hooks/useMessages';
 import { Loader2, Send } from 'lucide-react';
+import { groupSentMessages } from '@/lib/messageGrouping';
 
 export default function SentPage() {
   const { data: messages, isLoading } = useSentMessages();
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+
+  const groupedMessages = useMemo(() => {
+    return groupSentMessages(messages || []);
+  }, [messages]);
 
   const handleSelectMessage = (message: Message) => {
     setSelectedMessageId(message.id);
@@ -41,7 +46,7 @@ export default function SentPage() {
             </div>
           </div>
           <MessageList
-            messages={messages || []}
+            messages={groupedMessages}
             selectedId={selectedMessageId ?? undefined}
             onSelect={handleSelectMessage}
             showSender={false}

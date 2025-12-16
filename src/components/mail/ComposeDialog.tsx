@@ -23,6 +23,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useProfiles, Profile } from '@/hooks/useProfiles';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useSendMessage } from '@/hooks/useMessages';
 import { toast } from 'sonner';
 import { Send, Paperclip, X, Loader2, Check, ChevronsUpDown } from 'lucide-react';
@@ -45,14 +46,19 @@ const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 import { useDrafts } from '@/hooks/useDrafts';
 
 export function ComposeDialog({ open, onOpenChange, replyTo, draftId }: ComposeDialogProps) {
-  const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
+  const [selectedUsers, setSelectedUsers] = useState<Profile[]>([]);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-  const { data: profiles = [] } = useProfiles(searchTerm);
+  const { data: profiles = [], isLoading: isSearching } = useProfiles(
+    debouncedSearchTerm,
+    selectedUsers.map((u) => u.id)
+  );
+
   const sendMessage = useSendMessage();
   const { saveDraftAsync, deleteDraft, getDraft } = useDrafts();
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
@@ -66,12 +72,15 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId }: ComposeD
         setBody(draft.body);
         setCurrentDraftId(draft.id);
         if (draft.toUserId && draft.toUserEmail && draft.toUserName) {
-          setSelectedUser({
+          // TODO: Drafts structure assumes single user currently. 
+          // For now, we load it as a single selected user.
+          // Future task: Update drafts to support multiple recipients.
+          setSelectedUsers([{
             id: draft.toUserId,
             full_name: draft.toUserName,
             email: draft.toUserEmail,
-            avatar_url: null, // Drafts don't store avatar currently
-          } as Profile);
+            avatar_url: null,
+          } as Profile]);
         }
       }
     }
@@ -80,12 +89,12 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId }: ComposeD
   // Handle Reply setup
   useEffect(() => {
     if (replyTo && open && !draftId) {
-      setSelectedUser({
+      setSelectedUsers([{
         id: replyTo.userId,
         full_name: replyTo.name,
         email: replyTo.email,
         avatar_url: null,
-      });
+      }]);
       setSubject(replyTo.subject.startsWith('Re:') ? replyTo.subject : `Re: ${replyTo.subject}`);
     }
   }, [replyTo, open, draftId]);
@@ -95,14 +104,18 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId }: ComposeD
     if (!open) return;
 
     // Don't save if empty and no previous draft ID
-    if (!subject && !body && !selectedUser && !currentDraftId) return;
+    if (!subject && !body && selectedUsers.length === 0 && !currentDraftId) return;
 
     const timeoutId = setTimeout(async () => {
+      // Drafts currently support single recipient. We save the first one or none.
+      // This is a known limitation until drafts are upgraded.
+      const primaryUser = selectedUsers[0];
+
       const id = await saveDraftAsync({
         id: currentDraftId || '',
-        toUserId: selectedUser?.id,
-        toUserEmail: selectedUser?.email,
-        toUserName: selectedUser?.full_name,
+        toUserId: primaryUser?.id,
+        toUserEmail: primaryUser?.email,
+        toUserName: primaryUser?.full_name,
         subject,
         body,
       });
@@ -110,11 +123,11 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId }: ComposeD
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [subject, body, selectedUser, open, currentDraftId, saveDraftAsync]);
+  }, [subject, body, selectedUsers, open, currentDraftId, saveDraftAsync]);
 
   const handleClose = () => {
     // Just close, let the draft persist
-    setSelectedUser(null);
+    setSelectedUsers([]);
     setSubject('');
     setBody('');
     setAttachments([]);
@@ -141,15 +154,26 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId }: ComposeD
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const removeUser = (userId: string) => {
+    setSelectedUsers((prev) => prev.filter((u) => u.id !== userId));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && searchTerm === '' && selectedUsers.length > 0) {
+      // Remove the last selected user
+      setSelectedUsers((prev) => prev.slice(0, -1));
+    }
+  };
+
   const handleSend = async () => {
-    if (!selectedUser) {
-      toast.error('Please select a recipient');
+    if (selectedUsers.length === 0) {
+      toast.error('Please select at least one recipient');
       return;
     }
 
     try {
       await sendMessage.mutateAsync({
-        toUserId: selectedUser.id,
+        toUserIds: selectedUsers.map((u) => u.id),
         subject,
         body,
         attachments: attachments.length > 0 ? attachments : undefined,
@@ -177,55 +201,88 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId }: ComposeD
             <Label>To</Label>
             <Popover open={searchOpen} onOpenChange={setSearchOpen}>
               <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={searchOpen}
-                  className="w-full justify-between font-normal"
+                <div
+                  className="flex flex-wrap gap-2 p-2 border rounded-md min-h-[42px] items-center cursor-text transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+                  onClick={() => setSearchOpen(true)}
                 >
-                  {selectedUser ? (
-                    <span>
-                      {selectedUser.full_name}{' '}
-                      <span className="text-muted-foreground">&lt;{selectedUser.email}&gt;</span>
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">Select recipient...</span>
-                  )}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[550px] p-0" align="start">
-                <Command>
-                  <CommandInput
-                    placeholder="Search users..."
+                  {selectedUsers.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm group"
+                    >
+                      <span>{user.full_name}</span>
+                      <span className="text-xs text-muted-foreground hidden sm:inline">&lt;{user.email}&gt;</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeUser(user.id);
+                        }}
+                        className="ml-1 hover:text-destructive focus:outline-none"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <input
+                    className="flex-1 bg-transparent border-none outline-none text-sm min-w-[120px]"
+                    placeholder={selectedUsers.length === 0 ? "Select recipients..." : ""}
                     value={searchTerm}
-                    onValueChange={setSearchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      if (!searchOpen) setSearchOpen(true);
+                    }}
+                    onKeyDown={handleKeyDown}
+                    onFocus={() => setSearchOpen(true)}
                   />
+                </div>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-[550px] p-0"
+                align="start"
+                onOpenAutoFocus={(e) => e.preventDefault()} // Prevent stealing focus from input
+              >
+                <Command shouldFilter={false}>
+                  {/* Hidden CommandInput needed for accessibility but we use our own input above */}
+                  <div className="hidden">
+                    <CommandInput value={searchTerm} onValueChange={setSearchTerm} />
+                  </div>
                   <CommandList>
-                    <CommandEmpty>No users found.</CommandEmpty>
-                    <CommandGroup>
-                      {profiles.map((profile) => (
-                        <CommandItem
-                          key={profile.id}
-                          value={profile.email}
-                          onSelect={() => {
-                            setSelectedUser(profile);
-                            setSearchOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              selectedUser?.id === profile.id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          <div className="flex flex-col">
-                            <span>{profile.full_name}</span>
-                            <span className="text-xs text-muted-foreground">{profile.email}</span>
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
+                    {!debouncedSearchTerm || debouncedSearchTerm.length < 2 ? (
+                      <div className="py-6 text-center text-sm text-muted-foreground">
+                        Type at least 2 characters to search...
+                      </div>
+                    ) : isSearching ? (
+                      <div className="py-6 text-center text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
+                        Searching...
+                      </div>
+                    ) : profiles.length === 0 ? (
+                      <CommandEmpty>No users found.</CommandEmpty>
+                    ) : (
+                      <CommandGroup>
+                        {profiles.map((profile) => (
+                          <CommandItem
+                            key={profile.id}
+                            value={profile.email}
+                            onSelect={() => {
+                              setSelectedUsers((prev) => [...prev, profile]);
+                              setSearchTerm('');
+                              // Keep the popover open so they can add more, or close it? 
+                              // Use case "Add multiple": usually easier if it stays open or re-opens easily.
+                              // But logic above clears search term, which might trigger "Type 2 chars..." view.
+                              // Let's keep it open, but user has to type again.
+                              // Actually, standard behavior is to focus back on input.
+                            }}
+                          >
+                            <div className="flex flex-col">
+                              <span>{profile.full_name}</span>
+                              <span className="text-xs text-muted-foreground">{profile.email}</span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    )}
                   </CommandList>
                 </Command>
               </PopoverContent>

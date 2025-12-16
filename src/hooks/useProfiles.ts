@@ -9,27 +9,41 @@ export interface Profile {
   avatar_url: string | null;
 }
 
-export function useProfiles(searchTerm?: string) {
+export function useProfiles(searchTerm?: string, excludedIds: string[] = []) {
   const { user } = useAuth();
 
+  // Only run query if we have a search term with at least 2 characters, or if no search term (though UI prevents this now)
+  // Actually, per requirements: "Do not load all users on initial render" and "Trigger search only after 2 characters"
+  // So if (!searchTerm || searchTerm.length < 2), we should return empty.
+
+  const shouldFetch = !!user && !!searchTerm && searchTerm.length >= 2;
+
   return useQuery({
-    queryKey: ['profiles', searchTerm],
+    queryKey: ['profiles', searchTerm, JSON.stringify(excludedIds)],
     queryFn: async () => {
+      // Return empty if logic fails but query still runs for some reason (though 'enabled' handles this)
+      if (!searchTerm || searchTerm.length < 2) return [];
+
       let query = supabase
         .from('profiles')
         .select('*')
         .neq('id', user!.id)
         .order('full_name');
 
+      if (excludedIds.length > 0) {
+        query = query.not('id', 'in', `(${excludedIds.join(',')})`);
+      }
+
       if (searchTerm) {
         query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
       }
 
-      const { data, error } = await query.limit(20);
+      const { data, error } = await query.limit(10); // Limit to 10 as requested
 
       if (error) throw error;
       return data as Profile[];
     },
-    enabled: !!user,
+    enabled: shouldFetch,
+    initialData: [], // Start with empty list
   });
 }

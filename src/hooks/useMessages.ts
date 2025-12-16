@@ -124,85 +124,100 @@ export function useSendMessage() {
 
   return useMutation({
     mutationFn: async ({
-      toUserId,
+      toUserIds,
       subject,
       body,
       attachments,
     }: {
-      toUserId: string;
+      toUserIds: string[];
       subject: string;
       body: string;
       attachments?: File[];
     }) => {
       if (!user) throw new Error('Not authenticated');
 
-      // 1) Create message
-      const { data: message, error: messageError } = await supabase
-        .from('messages')
-        .insert({
-          from_user_id: user.id,
-          to_user_id: toUserId,
-          subject,
-          body,
-        })
-        .select()
-        .single();
+      if (!toUserIds || toUserIds.length === 0) {
+        throw new Error('No recipients selected');
+      }
 
-      if (messageError) throw messageError;
+      // Loop through each recipient and send the message
+      // Note: Ideally we would batch this or optimize attachment uploads, 
+      // but 'create one message row per recipient' is the requirement.
+      const messages = [];
 
-      // 2) Upload attachments to Cloudflare R2 via edge function
-      if (attachments && attachments.length > 0) {
-        // get access token for auth header
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
+      for (const toUserId of toUserIds) {
+        // 1) Create message
+        const { data: message, error: messageError } = await supabase
+          .from('messages')
+          .insert({
+            from_user_id: user.id,
+            to_user_id: toUserId,
+            subject,
+            body,
+          })
+          .select()
+          .single();
 
-        if (sessionError) throw sessionError;
-        const accessToken = session?.access_token ?? '';
+        if (messageError) throw messageError;
+        messages.push(message);
 
-        for (const file of attachments) {
-          const formData = new FormData();
-          formData.append('file', file);
-          formData.append('messageId', message.id);
-          formData.append('userId', user.id);
+        // 2) Upload attachments to Cloudflare R2 via edge function
+        // Optimization: We could upload once and reuse keys, but current implementation of R2 edge function
+        // might assume one-to-one or we don't want to refactor the edge function right now.
+        // We will just repeat the upload for safety and correctness with current schema.
+        if (attachments && attachments.length > 0) {
+          // get access token for auth header
+          const {
+            data: { session },
+            error: sessionError,
+          } = await supabase.auth.getSession();
 
-          const response = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/r2-upload`,
-            {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-              },
-              body: formData,
+          if (sessionError) throw sessionError;
+          const accessToken = session?.access_token ?? '';
+
+          for (const file of attachments) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('messageId', message.id);
+            formData.append('userId', user.id);
+
+            const response = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/r2-upload`,
+              {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                },
+                body: formData,
+              }
+            );
+
+            if (!response.ok) {
+              const errText = await response.text();
+              throw new Error(`R2 upload failed: ${errText}`);
             }
-          );
 
-          if (!response.ok) {
-            const errText = await response.text();
-            throw new Error(`R2 upload failed: ${errText}`);
+            const r2: R2UploadResult = await response.json();
+
+            // 3) Create attachment row pointing to R2
+            const { error: attachmentError } = await supabase
+              .from('attachments')
+              .insert({
+                message_id: message.id,
+                file_name: r2.name,
+                file_path: r2.key,      // store R2 object key here
+                file_size: r2.size,
+                file_type: r2.type,
+                uploaded_by_user_id: user.id,
+                // (optional) add a 'public_url' column later and store r2.url
+              });
+
+            if (attachmentError) throw attachmentError;
           }
-
-          const r2: R2UploadResult = await response.json();
-
-          // 3) Create attachment row pointing to R2
-          const { error: attachmentError } = await supabase
-            .from('attachments')
-            .insert({
-              message_id: message.id,
-              file_name: r2.name,
-              file_path: r2.key,      // store R2 object key here
-              file_size: r2.size,
-              file_type: r2.type,
-              uploaded_by_user_id: user.id,
-              // (optional) add a 'public_url' column later and store r2.url
-            });
-
-          if (attachmentError) throw attachmentError;
         }
       }
 
-      return message;
+      return messages;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages'] });
