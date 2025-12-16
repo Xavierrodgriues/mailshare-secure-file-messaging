@@ -7,7 +7,7 @@
 ## How can I edit this code?
 
 There are several ways of editing your application.
-
+<!--
 ```
 **Use Lovable**
 
@@ -15,6 +15,8 @@ Simply visit the [Lovable Project](https://lovable.dev/projects/ad0f3373-80c1-4c
 
 Changes made via Lovable will be committed automatically to this repo.
 ```
+
+-->
 **Use your preferred IDE**
 
 If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
@@ -62,6 +64,7 @@ This project is built with:
 - Tailwind CSS
 - Supabase
 
+<!--
 ```
 ## How can I deploy this project?
 
@@ -75,3 +78,4 @@ To connect a domain, navigate to Project > Settings > Domains and click Connect 
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
 ```
+-->
