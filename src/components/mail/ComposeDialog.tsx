@@ -219,7 +219,6 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId, mode = 'co
         toUserIds: selectedUsers.map((u) => u.id),
         subject,
         body,
-        body,
         attachments: attachments.length > 0 ? attachments : undefined,
         existingAttachments: existingAttachments.length > 0 ? existingAttachments : undefined,
       });
