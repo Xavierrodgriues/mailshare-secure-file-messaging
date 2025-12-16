@@ -128,11 +128,13 @@ export function useSendMessage() {
       subject,
       body,
       attachments,
+      existingAttachments,
     }: {
       toUserIds: string[];
       subject: string;
       body: string;
       attachments?: File[];
+      existingAttachments?: Attachment[];
     }) => {
       if (!user) throw new Error('Not authenticated');
 
@@ -213,6 +215,24 @@ export function useSendMessage() {
               });
 
             if (attachmentError) throw attachmentError;
+          }
+        }
+
+        // 3) Existing Attachments (Reuse R2 keys)
+        if (existingAttachments && existingAttachments.length > 0) {
+          for (const att of existingAttachments) {
+            const { error: attError } = await supabase
+              .from('attachments')
+              .insert({
+                message_id: message.id,
+                file_name: att.file_name,
+                file_path: att.file_path, // Reuse existing R2 key
+                file_size: att.file_size,
+                file_type: att.file_type,
+                uploaded_by_user_id: user.id,
+              });
+
+            if (attError) throw attError;
           }
         }
       }

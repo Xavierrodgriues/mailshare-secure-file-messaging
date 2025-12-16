@@ -6,7 +6,13 @@ import { useDownloadFile } from '@/hooks/useAttachments';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
-import { Download, Trash2, Reply, Paperclip, ArrowLeft, Loader2 } from 'lucide-react';
+import { Download, Trash2, Reply, Paperclip, ArrowLeft, Loader2, MoreVertical, Pencil } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { ComposeDialog } from './ComposeDialog';
 import { formatFileSize } from '@/lib/utils';
@@ -34,6 +40,7 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
     const downloadFile = useDownloadFile();
 
     const [replyOpen, setReplyOpen] = useState(false);
+    const [editAsNewMessage, setEditAsNewMessage] = useState<Message | null>(null);
     const scrollViewportRef = useRef<HTMLDivElement>(null);
     const lastScrollHeightRef = useRef<number>(0);
     const shouldScrollToBottomRef = useRef<boolean>(true);
@@ -201,9 +208,23 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                                             </div>
                                         </div>
                                         <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(msg)}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                                        <MoreVertical className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={() => setEditAsNewMessage(msg)}>
+                                                        <Pencil className="h-4 w-4 mr-2" />
+                                                        Edit as New
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleDelete(msg)} className="text-destructive focus:text-destructive">
+                                                        <Trash2 className="h-4 w-4 mr-2" />
+                                                        Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </div>
                                     </div>
 
@@ -267,6 +288,17 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                     subject: baseSubject,
                 }}
             />
+
+            {editAsNewMessage && (
+                <ComposeDialog
+                    open={!!editAsNewMessage}
+                    onOpenChange={(open) => {
+                        if (!open) setEditAsNewMessage(null);
+                    }}
+                    mode="edit-as-new"
+                    initialData={editAsNewMessage}
+                />
+            )}
         </>
     );
 }

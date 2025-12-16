@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/popover';
 import { useProfiles, Profile } from '@/hooks/useProfiles';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useSendMessage } from '@/hooks/useMessages';
+import { useSendMessage, Message, Attachment } from '@/hooks/useMessages';
 import { toast } from 'sonner';
 import { Send, Paperclip, X, Loader2, Check, ChevronsUpDown } from 'lucide-react';
 import { cn, formatFileSize } from '@/lib/utils';
@@ -39,17 +39,20 @@ interface ComposeDialogProps {
     subject: string;
   };
   draftId?: string;
+  mode?: 'compose' | 'edit-as-new';
+  initialData?: Message;
 }
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
 import { useDrafts } from '@/hooks/useDrafts';
 
-export function ComposeDialog({ open, onOpenChange, replyTo, draftId }: ComposeDialogProps) {
+export function ComposeDialog({ open, onOpenChange, replyTo, draftId, mode = 'compose', initialData }: ComposeDialogProps) {
   const [selectedUsers, setSelectedUsers] = useState<Profile[]>([]);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -88,16 +91,51 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId }: ComposeD
 
   // Handle Reply setup
   useEffect(() => {
-    if (replyTo && open && !draftId) {
+    if (replyTo && open && !draftId && mode === 'compose') {
       setSelectedUsers([{
         id: replyTo.userId,
         full_name: replyTo.name,
         email: replyTo.email,
         avatar_url: null,
-      }]);
+      } as Profile]);
       setSubject(replyTo.subject.startsWith('Re:') ? replyTo.subject : `Re: ${replyTo.subject}`);
     }
-  }, [replyTo, open, draftId]);
+  }, [replyTo, open, draftId, mode]);
+
+  // Handle Edit as New setup
+  useEffect(() => {
+    if (mode === 'edit-as-new' && initialData && open) {
+      setSubject(initialData.subject.startsWith('Edit:') ? initialData.subject : `Edit: ${initialData.subject}`);
+      setBody(initialData.body);
+
+      // Pre-fill To field
+      // Logic: If I am the sender, use the original recipients.
+      // If I received it, use the original recipients? Or just the sender?
+      // "Edit as New" usually implies: take this message content and start a new draft.
+      // If I sent it effectively I want to send TO the same people.
+      // If I received it, I probably want to send it TO someone else or back to sender?
+      // Requirement says: "To -> same recipients as the original message"
+      // If I received it, "recipients" includes ME. I probably don't want to send to myself.
+      // But let's stick to the message's `to_profile` or `to_user_id`.
+      // The message object has `to_profile`.
+      if (initialData.to_profile && initialData.to_user_id) {
+        setSelectedUsers([{
+          id: initialData.to_user_id,
+          full_name: initialData.to_profile.full_name,
+          email: initialData.to_profile.email,
+          avatar_url: null,
+        } as Profile]);
+      } else {
+        // Fallback or maybe handle multiple recipients if the message data supported it (currently schema is 1:1)
+        setSelectedUsers([]);
+      }
+
+      // Handle attachments
+      if (initialData.attachments) {
+        setExistingAttachments(initialData.attachments);
+      }
+    }
+  }, [mode, initialData, open]);
 
   // Auto-save draft
   useEffect(() => {
@@ -131,6 +169,7 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId }: ComposeD
     setSubject('');
     setBody('');
     setAttachments([]);
+    setExistingAttachments([]);
     setSearchTerm('');
     setCurrentDraftId(null);
     onOpenChange(false);
@@ -152,6 +191,10 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId }: ComposeD
 
   const removeAttachment = (index: number) => {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const removeExistingAttachment = (attachmentId: string) => {
+    setExistingAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
   };
 
   const removeUser = (userId: string) => {
@@ -176,7 +219,9 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId }: ComposeD
         toUserIds: selectedUsers.map((u) => u.id),
         subject,
         body,
+        body,
         attachments: attachments.length > 0 ? attachments : undefined,
+        existingAttachments: existingAttachments.length > 0 ? existingAttachments : undefined,
       });
       if (currentDraftId) {
         deleteDraft(currentDraftId);
@@ -325,6 +370,31 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId }: ComposeD
                     <span className="text-muted-foreground">({formatFileSize(file.size)})</span>
                     <button
                       onClick={() => removeAttachment(index)}
+                      className="hover:text-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Existing Attachments (Edit as New) */}
+          {existingAttachments.length > 0 && (
+            <div className="space-y-2">
+              <Label>Existing Attachments</Label>
+              <div className="flex flex-wrap gap-2">
+                {existingAttachments.map((att) => (
+                  <div
+                    key={att.id}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full text-sm border border-input"
+                  >
+                    <Paperclip className="h-3 w-3" />
+                    <span className="truncate max-w-[150px]">{att.file_name}</span>
+                    <span className="text-muted-foreground">({formatFileSize(att.file_size)})</span>
+                    <button
+                      onClick={() => removeExistingAttachment(att.id)}
                       className="hover:text-destructive"
                     >
                       <X className="h-3 w-3" />
