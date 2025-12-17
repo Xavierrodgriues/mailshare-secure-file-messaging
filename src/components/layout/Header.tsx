@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSearch } from '@/contexts/SearchContext';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -9,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, User, Search, Menu } from 'lucide-react';
+import { LogOut, User, Menu, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { SidebarContent } from './Sidebar';
@@ -17,6 +18,7 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 export function Header() {
   const { profile, signOut } = useAuth();
+  const { searchQuery, setSearchQuery, showSearch } = useSearch();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const initials = profile?.full_name
@@ -45,15 +47,20 @@ export function Header() {
         </Sheet>
       </div>
 
-      {/* Search */}
-      <div className="flex-1 max-w-xl">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search..."
-            className="pl-10 bg-muted/50 border-0 focus-visible:ring-1"
-          />
-        </div>
+      {/* Search Bar or Spacer */}
+      <div className="flex-1 max-w-2xl">
+        {showSearch && (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search mail..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-muted/50 border-0 focus-visible:ring-1"
+            />
+          </div>
+        )}
       </div>
 
       {/* User Menu */}

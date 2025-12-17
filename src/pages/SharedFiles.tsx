@@ -15,6 +15,8 @@ export default function SharedFilesPage() {
   const downloadFile = useDownloadFile();
   const [searchQuery, setSearchQuery] = useState('');
 
+  
+
   const filesSharedByMe = files?.filter(
     (f) => f.message.from_user_id === user?.id
   ) || [];
