@@ -305,7 +305,7 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
                 </div>
               </PopoverTrigger>
               <PopoverContent
-                className="w-[550px] p-0"
+                className="w-[calc(100vw-32px)] sm:w-[550px] p-0"
                 align="start"
                 onOpenAutoFocus={(e) => e.preventDefault()} // Prevent stealing focus from input
               >
