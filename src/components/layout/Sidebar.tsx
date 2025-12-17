@@ -13,7 +13,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { ComposeDialog } from '@/components/mail/ComposeDialog';
+
 
 const navItems = [
   { path: '/', label: 'Inbox', icon: Inbox },
@@ -30,15 +30,16 @@ export function SidebarContent({
   collapsed,
   onCollapse,
   isMobile = false,
-  onCloseMobile
+  onCloseMobile,
+  onComposeClick
 }: {
   collapsed?: boolean;
   onCollapse?: (collapsed: boolean) => void;
   isMobile?: boolean;
   onCloseMobile?: () => void;
+  onComposeClick?: () => void;
 }) {
   const location = useLocation();
-  const [composeOpen, setComposeOpen] = useState(false);
 
   return (
     <>
@@ -62,7 +63,7 @@ export function SidebarContent({
             variant="compose"
             className={cn("w-full", collapsed && !isMobile && "px-0")}
             onClick={() => {
-              setComposeOpen(true);
+              if (onComposeClick) onComposeClick();
               if (isMobile && onCloseMobile) onCloseMobile();
             }}
           >
@@ -136,13 +137,11 @@ export function SidebarContent({
           </div>
         )}
       </div>
-
-      <ComposeDialog open={composeOpen} onOpenChange={setComposeOpen} />
     </>
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ onComposeClick }: { onComposeClick?: () => void }) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -152,7 +151,12 @@ export function Sidebar() {
         collapsed ? "w-[72px]" : "w-64"
       )}
     >
-      <SidebarContent collapsed={collapsed} onCollapse={setCollapsed} />
+      <SidebarContent
+        collapsed={collapsed}
+        onCollapse={setCollapsed}
+        onComposeClick={onComposeClick}
+      />
     </aside>
   );
 }
+

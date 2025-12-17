@@ -16,7 +16,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/s
 import { SidebarContent } from './Sidebar';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
-export function Header() {
+export function Header({ onComposeClick }: { onComposeClick?: () => void }) {
   const { profile, signOut } = useAuth();
   const { searchQuery, setSearchQuery, showSearch } = useSearch();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -42,7 +42,11 @@ export function Header() {
             <VisuallyHidden>
               <SheetTitle>Navigation Menu</SheetTitle>
             </VisuallyHidden>
-            <SidebarContent isMobile onCloseMobile={() => setMobileOpen(false)} />
+            <SidebarContent
+              isMobile
+              onCloseMobile={() => setMobileOpen(false)}
+              onComposeClick={onComposeClick}
+            />
           </SheetContent>
         </Sheet>
       </div>

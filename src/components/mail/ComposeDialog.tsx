@@ -257,7 +257,7 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-[640px] p-0 gap-0 max-h-[90vh] flex flex-col">
+      <DialogContent className="w-full h-full max-w-none rounded-none border-0 sm:w-[95vw] sm:max-w-[640px] sm:h-auto sm:max-h-[90vh] sm:rounded-lg sm:border flex flex-col p-0 gap-0">
         <DialogHeader className="p-4 pb-2 border-b border-border">
           <DialogTitle className="font-display">New Message</DialogTitle>
         </DialogHeader>
