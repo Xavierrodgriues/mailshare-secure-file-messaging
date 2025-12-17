@@ -4,14 +4,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
-import { Download, FolderOpen, Paperclip, Loader2 } from 'lucide-react';
+import { Download, FolderOpen, Paperclip, Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatFileSize } from '@/lib/utils';
+import { useState } from 'react';
 
 export default function SharedFilesPage() {
   const { user } = useAuth();
   const { data: files, isLoading } = useSharedFiles();
   const downloadFile = useDownloadFile();
+  const [searchQuery, setSearchQuery] = useState('');
 
   const filesSharedByMe = files?.filter(
     (f) => f.message.from_user_id === user?.id
@@ -20,6 +22,17 @@ export default function SharedFilesPage() {
   const filesSharedWithMe = files?.filter(
     (f) => f.message.to_user_id === user?.id
   ) || [];
+
+  // Filter files based on search query
+  const filterFilesBySearch = (fileList: typeof filesSharedByMe) => {
+    if (!searchQuery.trim()) return fileList;
+    return fileList.filter((file) =>
+      file.file_name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  };
+
+  const filteredFilesSharedByMe = filterFilesBySearch(filesSharedByMe);
+  const filteredFilesSharedWithMe = filterFilesBySearch(filesSharedWithMe);
 
   const handleDownload = async (filePath: string, fileName: string) => {
     try {
@@ -42,8 +55,8 @@ export default function SharedFilesPage() {
 
   const FileTable = ({ files, showColumn }: { files: typeof filesSharedByMe; showColumn: 'sender' | 'recipient' }) => (
     <div className="rounded-lg border border-border overflow-hidden bg-card">
-      {/* Scrollable container with bottom padding for scrollbar visibility */}
-      <div className="overflow-y-auto max-h-[calc(100vh-250px)] scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
+      {/* Scrollable container with responsive height and bottom padding */}
+      <div className="overflow-y-auto max-h-[calc(100vh-320px)] md:max-h-[calc(100vh-280px)] pb-4 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
         <table className="w-full">
           <thead className="bg-muted/90 sticky top-0 z-10 backdrop-blur-sm hidden md:table-header-group">
             <tr>
@@ -66,7 +79,7 @@ export default function SharedFilesPage() {
             ) : (
               files.map((file) => (
                 <tr key={file.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="p-4 align-top md:align-middle">
+                  <td className="p-3 md:p-4 align-top md:align-middle">
                     <div className="flex items-start md:items-center gap-3">
                       <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1 md:mt-0">
                         <Paperclip className="h-5 w-5 text-primary" />
@@ -99,7 +112,7 @@ export default function SharedFilesPage() {
                       {format(new Date(file.created_at), 'MMM d, yyyy')}
                     </span>
                   </td>
-                  <td className="p-4 text-right">
+                  <td className="p-3 md:p-4 text-right align-top md:align-middle">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -119,28 +132,42 @@ export default function SharedFilesPage() {
 
   return (
     <AppLayout>
-      <div className="p-6">
-        <div className="flex items-center gap-2 mb-6">
-          <FolderOpen className="h-6 w-6 text-primary" />
-          <h1 className="font-display font-semibold text-xl">Shared Files</h1>
+      <div className="p-4 md:p-6">
+        <div className="flex items-center gap-2 mb-4 md:mb-6">
+          <FolderOpen className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+          <h1 className="font-display font-semibold text-lg md:text-xl">Shared Files</h1>
+        </div>
+
+        {/* Search Input */}
+        <div className="mb-4 md:mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search files..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-2.5 md:pl-10 md:pr-4 md:py-2 rounded-lg border border-border bg-background text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow"
+            />
+          </div>
         </div>
 
         <Tabs defaultValue="received" className="w-full">
           <TabsList className="mb-6">
             <TabsTrigger value="received">
-              Files Shared With Me ({filesSharedWithMe.length})
+              Files Shared With Me ({filteredFilesSharedWithMe.length})
             </TabsTrigger>
             <TabsTrigger value="sent">
-              Files I Shared ({filesSharedByMe.length})
+              Files I Shared ({filteredFilesSharedByMe.length})
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="received" className="animate-fade-in">
-            <FileTable files={filesSharedWithMe} showColumn="sender" />
+            <FileTable files={filteredFilesSharedWithMe} showColumn="sender" />
           </TabsContent>
 
           <TabsContent value="sent" className="animate-fade-in">
-            <FileTable files={filesSharedByMe} showColumn="recipient" />
+            <FileTable files={filteredFilesSharedByMe} showColumn="recipient" />
           </TabsContent>
         </Tabs>
       </div>
