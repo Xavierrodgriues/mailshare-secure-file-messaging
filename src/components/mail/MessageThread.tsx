@@ -6,7 +6,7 @@ import { useDownloadFile } from '@/hooks/useAttachments';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
-import { Download, Trash2, Reply, Paperclip, ArrowLeft, Loader2, MoreVertical, Pencil } from 'lucide-react';
+import { Download, Trash2, Reply, Paperclip, ArrowLeft, Loader2, MoreVertical, Pencil, Forward } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -41,6 +41,7 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
 
     const [replyOpen, setReplyOpen] = useState(false);
     const [editAsNewMessage, setEditAsNewMessage] = useState<Message | null>(null);
+    const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
     const scrollViewportRef = useRef<HTMLDivElement>(null);
     const lastScrollHeightRef = useRef<number>(0);
     const shouldScrollToBottomRef = useRef<boolean>(true);
@@ -219,6 +220,10 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                                                         <Pencil className="h-4 w-4 mr-2" />
                                                         Edit as New
                                                     </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => setForwardMessage(msg)}>
+                                                        <Forward className="h-4 w-4 mr-2" />
+                                                        Forward
+                                                    </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => handleDelete(msg)} className="text-destructive focus:text-destructive">
                                                         <Trash2 className="h-4 w-4 mr-2" />
                                                         Delete
@@ -297,6 +302,17 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                     }}
                     mode="edit-as-new"
                     initialData={editAsNewMessage}
+                />
+            )}
+
+            {forwardMessage && (
+                <ComposeDialog
+                    open={!!forwardMessage}
+                    onOpenChange={(open) => {
+                        if (!open) setForwardMessage(null);
+                    }}
+                    mode="forward"
+                    initialData={forwardMessage}
                 />
             )}
         </>

@@ -39,7 +39,7 @@ interface ComposeDialogProps {
     subject: string;
   };
   draftId?: string;
-  mode?: 'compose' | 'edit-as-new';
+  mode?: 'compose' | 'edit-as-new' | 'forward';
   initialData?: Message;
 }
 
@@ -129,6 +129,29 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId, mode = 'co
         // Fallback or maybe handle multiple recipients if the message data supported it (currently schema is 1:1)
         setSelectedUsers([]);
       }
+
+      // Handle attachments
+      if (initialData.attachments) {
+        setExistingAttachments(initialData.attachments);
+      }
+    }
+
+    if (mode === 'forward' && initialData && open) {
+      setSubject(initialData.subject.startsWith('Fwd:') ? initialData.subject : `Fwd: ${initialData.subject}`);
+
+      const forwardedHeader = `
+
+---------- Forwarded message ---------
+From: ${initialData.from_profile?.full_name || 'Unknown'} <${initialData.from_profile?.email || 'unknown@example.com'}>
+Date: ${new Date(initialData.created_at).toLocaleString()}
+Subject: ${initialData.subject}
+To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?.email || 'unknown@example.com'}>
+
+`;
+      setBody(forwardedHeader + (initialData.body || ''));
+
+      // Clear recipients for forward
+      setSelectedUsers([]);
 
       // Handle attachments
       if (initialData.attachments) {
