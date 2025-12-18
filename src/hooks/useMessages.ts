@@ -47,11 +47,12 @@ interface R2UploadResult {
 
 export function useInboxMessages() {
   const { user } = useAuth();
+  const PAGE_SIZE = 20;
 
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['messages', 'inbox', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
+    queryFn: async ({ pageParam }) => {
+      let query = supabase
         .from('messages')
         .select(`
           *,
@@ -59,10 +60,21 @@ export function useInboxMessages() {
         `)
         .eq('to_user_id', user!.id)
         .eq('is_deleted_receiver', false)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(PAGE_SIZE);
 
+      if (pageParam) {
+        query = query.lt('created_at', pageParam);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as Message[];
+    },
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => {
+      if (!lastPage || lastPage.length < PAGE_SIZE) return null;
+      return lastPage[lastPage.length - 1].created_at;
     },
     enabled: !!user,
   });
@@ -70,11 +82,12 @@ export function useInboxMessages() {
 
 export function useSentMessages() {
   const { user } = useAuth();
+  const PAGE_SIZE = 20;
 
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['messages', 'sent', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
+    queryFn: async ({ pageParam }) => {
+      let query = supabase
         .from('messages')
         .select(`
           *,
@@ -82,10 +95,21 @@ export function useSentMessages() {
         `)
         .eq('from_user_id', user!.id)
         .eq('is_deleted_sender', false)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(PAGE_SIZE);
 
+      if (pageParam) {
+        query = query.lt('created_at', pageParam);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as Message[];
+    },
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => {
+      if (!lastPage || lastPage.length < PAGE_SIZE) return null;
+      return lastPage[lastPage.length - 1].created_at;
     },
     enabled: !!user,
   });
