@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useLayoutEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useConversationInfinite, useMarkMessagesAsRead, useDeleteMessage, Message } from '@/hooks/useMessages';
 import { useDownloadFile } from '@/hooks/useAttachments';
@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner';
 import { ComposeDialog } from './ComposeDialog';
 import { formatFileSize } from '@/lib/utils';
+import { cn } from '@/lib/utils'; // Assuming cn utility is available or use standard className
 
 interface MessageThreadProps {
     messageId: string;
@@ -42,21 +43,37 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
     const [replyOpen, setReplyOpen] = useState(false);
     const [editAsNewMessage, setEditAsNewMessage] = useState<Message | null>(null);
     const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
-    const scrollViewportRef = useRef<HTMLDivElement>(null);
-    const lastScrollHeightRef = useRef<number>(0);
-    const shouldScrollToBottomRef = useRef<boolean>(true);
 
-    // Flatten pages into a single array and sort ASC (oldest to newest) for display
-    const messages = data?.pages.flatMap(page => page) || [];
-    // We get them DESC (newest first) from pages, so we need to reverse them for display?
-    // The hook returns DESC (newest first). 
-    // Example: Page 1: [Msg 100, Msg 99...], Page 2: [Msg 80, Msg 79...]
-    // flatMap gives [100, 99, ..., 80, 79...]
-    // We want display: 1 (oldest) -> 100 (newest).
-    // So we need to sort ascending.
-    const sortedMessages = [...messages].sort((a, b) =>
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    );
+    // Scroll refs
+    const scrollViewportRef = useRef<HTMLDivElement>(null);
+    // Track previous scroll height to maintain position when loading older messages
+    const previousScrollHeightRef = useRef<number>(0);
+    // Track if we should auto-scroll to bottom (initially or when new message arrives)
+    const shouldScrollToBottomRef = useRef<boolean>(true);
+    // Track if we are currently handling a "prepend" operation
+    const isPrependingRef = useRef<boolean>(false);
+
+    // 1. Memoize flat list of messages
+    const rawMessages = useMemo(() => {
+        return data?.pages.flatMap(page => page) || [];
+    }, [data?.pages]);
+
+    // 2. Memoize sorted messages (ASC for display)
+    const sortedMessages = useMemo(() => {
+        return [...rawMessages].sort((a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+    }, [rawMessages]);
+
+    // Reset scroll state when switching conversations
+    useLayoutEffect(() => {
+        shouldScrollToBottomRef.current = true;
+        previousScrollHeightRef.current = 0;
+        isPrependingRef.current = false;
+        setReplyOpen(false); // Also close reply dialog if open
+        setEditAsNewMessage(null);
+        setForwardMessage(null);
+    }, [messageId]);
 
     // Mark unread messages as read
     useEffect(() => {
@@ -69,60 +86,69 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                 markMessagesAsRead.mutate(unreadIds);
             }
         }
-    }, [messages.length, user?.id]); // Depend on messages.length to re-run when new messages arrive
+    }, [sortedMessages.length, user?.id]);
 
-    // Handle scroll preservation and initial scroll
-    useEffect(() => {
+    // Scroll Management with useLayoutEffect to prevent flickering
+    useLayoutEffect(() => {
         const viewport = scrollViewportRef.current;
         if (!viewport) return;
 
+        // CASE 1: Initial Load or New Message at Bottom
         if (shouldScrollToBottomRef.current) {
             viewport.scrollTop = viewport.scrollHeight;
-            shouldScrollToBottomRef.current = false;
-        } else if (lastScrollHeightRef.current > 0) {
-            // If we loaded more messages (previous pages), we want to maintain relative position
-            // The new content is added at the TOP.
-            // New scrollHeight - old scrollHeight = amount of new content added at top.
-            // We adding this to scrollTop keeps the view stable.
-            const heightDifference = viewport.scrollHeight - lastScrollHeightRef.current;
-            if (heightDifference > 0) {
-                viewport.scrollTop += heightDifference;
+            // Only turn off auto-scroll if we have actually loaded messages
+            if (sortedMessages.length > 0) {
+                shouldScrollToBottomRef.current = false;
             }
-            lastScrollHeightRef.current = 0;
+            return;
         }
-    }, [messages.length, isFetchingNextPage]); // Run when messages change
+
+        // CASE 2: Loaded Older Messages (Prepend)
+        if (isPrependingRef.current && previousScrollHeightRef.current > 0) {
+            const newScrollHeight = viewport.scrollHeight;
+            const diff = newScrollHeight - previousScrollHeightRef.current;
+
+            // Adjust scroll position to keep user's view stable
+            if (diff > 0) {
+                viewport.scrollTop += diff;
+            }
+
+            isPrependingRef.current = false;
+            previousScrollHeightRef.current = 0;
+            return;
+        }
+
+        // CASE 3: New Message Arrived (Real-time or Sent by user)
+        // If user was already near bottom, auto-scroll to new bottom.
+        // We can detect this by checking if the previous scroll position + height was near bottom.
+        // For simplicity, if we are NOT prepending, and length increased, check bottom proximity.
+        // However, since we don't track "previous raw length" in a ref here easily without more state,
+        // we can assume if 'shouldScrollToBottomRef' is false, the user might have scrolled up.
+        // But for a chat app, usually if you are at the very bottom, you want to stay there.
+
+        const isNearBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 100;
+        if (isNearBottom) {
+            viewport.scrollTop = viewport.scrollHeight;
+        }
+
+    }, [sortedMessages, isFetchingNextPage]); // Depend on sortedMessages reference change
 
     const handleScroll = () => {
         const viewport = scrollViewportRef.current;
         if (!viewport) return;
 
-        // If user scrolls near top (e.g. within 100px), fetch next page
-        if (viewport.scrollTop < 100 && hasNextPage && !isFetchingNextPage) {
-            lastScrollHeightRef.current = viewport.scrollHeight;
+        // Detect if we need to fetch older messages (scrolled to top)
+        if (viewport.scrollTop < 200 && hasNextPage && !isFetchingNextPage) {
+            // Save current scroll height to restore position after fetch
+            previousScrollHeightRef.current = viewport.scrollHeight;
+            isPrependingRef.current = true;
             fetchNextPage();
+            console.log('Fetching the older messages');
         }
+
+        // Detect if user scrolled away from bottom to disable auto-scroll momentarily if needed
+        // (Managed mostly by layout effect logic logic)
     };
-
-    if (status === 'pending' || metadataLoading) {
-        return (
-            <div className="h-full flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-        );
-    }
-
-    if (status === 'error' || !baseSubject) {
-        return (
-            <div className="h-full flex items-center justify-center text-muted-foreground">
-                <p>Failed to load conversation</p>
-            </div>
-        );
-    }
-
-    // Determine other user details
-    const otherUser = sortedMessages.find(m => m.from_user_id !== user?.id)?.from_profile ||
-        sortedMessages.find(m => m.to_user_id !== user?.id)?.to_profile;
-
 
     const handleDownload = async (filePath: string, fileName: string) => {
         try {
@@ -144,6 +170,37 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
             toast.error('Failed to delete message');
         }
     };
+
+    // Auto-scroll on send (when sortedMessages grows and we authored the last one, or just force it)
+    useEffect(() => {
+        if (sortedMessages.length > 0) {
+            const lastMsg = sortedMessages[sortedMessages.length - 1];
+            if (lastMsg.from_user_id === user?.id) {
+                shouldScrollToBottomRef.current = true;
+            }
+        }
+    }, [sortedMessages.length, user?.id]);
+
+
+    if (status === 'pending' || metadataLoading) {
+        return (
+            <div className="h-full flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    if (status === 'error' || !baseSubject) {
+        return (
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+                <p>Failed to load conversation</p>
+            </div>
+        );
+    }
+
+    // Determine other user details
+    const otherUser = sortedMessages.find(m => m.from_user_id !== user?.id)?.from_profile ||
+        sortedMessages.find(m => m.to_user_id !== user?.id)?.to_profile;
 
     return (
         <>
@@ -169,10 +226,11 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                 <div
                     ref={scrollViewportRef}
                     onScroll={handleScroll}
-                    className="flex-1 overflow-auto p-4 space-y-6 no-scrollbar"
+                    className="flex-1 overflow-auto p-4 space-y-6 no-scrollbar scrolling-touch"
                 >
+                    {/* Top Loader for Infinite Scroll */}
                     {isFetchingNextPage && (
-                        <div className="flex justify-center py-2">
+                        <div className="flex justify-center py-4">
                             <Loader2 className="h-6 w-6 animate-spin text-primary/50" />
                         </div>
                     )}
@@ -182,13 +240,15 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                         const senderName = msg.from_profile?.full_name || 'Unknown';
                         const initials = senderName.slice(0, 2).toUpperCase();
 
+                        // Check if previous message was from same sender to group visually if desired
+                        // const isSequence = index > 0 && sortedMessages[index-1].from_user_id === msg.from_user_id;
+
                         return (
                             <div
                                 key={msg.id}
-                                className={`flex gap-4 group ${
-                                    // Optional: distinct styling for read/unread or focused
-                                    ''
-                                    }`}
+                                className={cn("flex gap-4 group transition-opacity duration-200",
+                                    // isSequence ? "mt-1" : "mt-4" // Optional spacing
+                                )}
                             >
                                 <Avatar className="h-10 w-10 mt-1 flex-shrink-0">
                                     <AvatarFallback className={isMe ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}>
@@ -211,7 +271,7 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                                         <div>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                                                         <MoreVertical className="h-4 w-4" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
@@ -265,8 +325,6 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                             </div>
                         );
                     })}
-
-                    {/* Anchor for scrolling - effectively replaced by scrollViewportRef logic */}
                 </div>
 
                 {/* Footer Actions */}
@@ -283,11 +341,6 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                 onOpenChange={setReplyOpen}
                 replyTo={{
                     userId: otherUserId,
-                    // If I am the sender of the last message, I reply to the OTHER person.
-                    // If I am the receiver of the last message, I reply to the SENDER.
-                    // Actually, in a 1-on-1 thread, I always reply to the 'otherUser'.
-                    // useConversation gives us `otherUserId` which is the ID of the person I'm talking to.
-                    // I need their name and email.
                     name: otherUser?.full_name || 'Unknown',
                     email: otherUser?.email || '',
                     subject: baseSubject,
