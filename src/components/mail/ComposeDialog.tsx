@@ -300,6 +300,7 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
                     className="flex-1 bg-transparent border-none outline-none text-sm min-w-[120px]"
                     placeholder={selectedUsers.length === 0 ? "Select recipients..." : ""}
                     value={searchTerm}
+                    name='searchTerm'
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
                       if (!searchOpen) setSearchOpen(true);
@@ -367,6 +368,7 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
             <Input
               placeholder="Enter subject..."
               value={subject}
+              name='subject'
               onChange={(e) => setSubject(e.target.value)}
             />
           </div>
@@ -378,6 +380,7 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
               placeholder="Write your message..."
               className="min-h-[200px] resize-none"
               value={body}
+              name='body'
               onChange={(e) => setBody(e.target.value)}
             />
           </div>
