@@ -4,7 +4,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -258,6 +260,9 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full h-full max-w-none rounded-none border-0 sm:w-[95vw] sm:max-w-[640px] sm:h-auto sm:max-h-[90vh] sm:rounded-lg sm:border flex flex-col p-0 gap-0">
+        <VisuallyHidden>
+          <DialogDescription>Compose a new message</DialogDescription>
+        </VisuallyHidden>
         <DialogHeader className="p-4 pb-2 border-b border-border">
           <DialogTitle className="font-display">New Message</DialogTitle>
         </DialogHeader>

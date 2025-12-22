@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSearch } from '@/contexts/SearchContext';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,13 @@ export function Header({ onComposeClick }: { onComposeClick?: () => void }) {
   const { profile, signOut } = useAuth();
   const { searchQuery, setSearchQuery, showSearch } = useSearch();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const isOpeningComposeRef = useRef(false);
+
+  const handleComposeClick = () => {
+    isOpeningComposeRef.current = true;
+    if (onComposeClick) onComposeClick();
+    setMobileOpen(false);
+  };
 
   const initials = profile?.full_name
     ?.split(' ')
@@ -38,14 +45,24 @@ export function Header({ onComposeClick }: { onComposeClick?: () => void }) {
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-72" aria-describedby={undefined}>
+          <SheetContent
+            side="left"
+            className="p-0 w-72"
+            aria-describedby={undefined}
+            onCloseAutoFocus={(e) => {
+              if (isOpeningComposeRef.current) {
+                e.preventDefault();
+                isOpeningComposeRef.current = false;
+              }
+            }}
+          >
             <VisuallyHidden>
               <SheetTitle>Navigation Menu</SheetTitle>
             </VisuallyHidden>
             <SidebarContent
               isMobile
               onCloseMobile={() => setMobileOpen(false)}
-              onComposeClick={onComposeClick}
+              onComposeClick={handleComposeClick}
             />
           </SheetContent>
         </Sheet>
