@@ -30,6 +30,7 @@ import { useSendMessage, Message, Attachment } from '@/hooks/useMessages';
 import { toast } from 'sonner';
 import { Send, Paperclip, X, Loader2, Check, ChevronsUpDown } from 'lucide-react';
 import { cn, formatFileSize } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ComposeDialogProps {
   open: boolean;
@@ -57,6 +58,7 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId, mode = 'co
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isLoadingAllUsers, setIsLoadingAllUsers] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   const { data: profiles = [], isLoading: isSearching } = useProfiles(
@@ -264,6 +266,41 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
     }
   };
 
+  const handleSelectAllUsers = async () => {
+    try {
+      setIsLoadingAllUsers(true);
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        toast.error('You must be logged in');
+        return;
+      }
+
+      const { data: allProfiles, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .neq('id', user.id);
+
+      if (error) throw error;
+
+      if (allProfiles) {
+        setSelectedUsers((prev) => {
+          // Filter out users already selected
+          const newUsers = allProfiles.filter(
+            (p) => !prev.some((existing) => existing.id === p.id)
+          );
+          return [...prev, ...newUsers];
+        });
+        toast.success(`Selected ${allProfiles.length} users`);
+      }
+    } catch (error) {
+      console.error('Error selecting all users:', error);
+      toast.error('Failed to select all users');
+    } finally {
+      setIsLoadingAllUsers(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full h-full max-w-none rounded-none border-0 sm:w-[95vw] sm:max-w-[640px] sm:h-auto sm:max-h-[90vh] sm:rounded-lg sm:border flex flex-col p-0 gap-0">
@@ -277,7 +314,25 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
         <div className="p-4 space-y-4 overflow-y-auto flex-1">
           {/* To Field */}
           <div className="space-y-2">
-            <Label>To</Label>
+            <div className="flex justify-between items-center">
+              <Label>To</Label>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSelectAllUsers}
+                disabled={isLoadingAllUsers}
+                className="h-6 px-2 text-xs text-muted-foreground"
+              >
+                {isLoadingAllUsers ? (
+                  <>
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Selecting...
+                  </>
+                ) : (
+                  "Select All Users"
+                )}
+              </Button>
+            </div>
             <Popover open={searchOpen} onOpenChange={setSearchOpen}>
               <PopoverTrigger asChild>
                 <div
