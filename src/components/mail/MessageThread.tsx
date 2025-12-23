@@ -271,7 +271,7 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                                         <div>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-white hover:bg-accent">
                                                         <MoreVertical className="h-4 w-4" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
@@ -284,10 +284,10 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                                                         <Forward className="h-4 w-4 mr-2" />
                                                         Forward
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleDelete(msg)} className="text-destructive focus:text-destructive">
+                                                    {/* <DropdownMenuItem onClick={() => handleDelete(msg)} className="text-destructive focus:text-destructive">
                                                         <Trash2 className="h-4 w-4 mr-2" />
                                                         Delete
-                                                    </DropdownMenuItem>
+                                                    </DropdownMenuItem> */}
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </div>

@@ -19,7 +19,7 @@ const navItems = [
   { path: '/', label: 'Inbox', icon: Inbox },
   { path: '/sent', label: 'Sent', icon: Send },
   { path: '/drafts', label: 'Drafts', icon: FileText },
-  { path: '/trash', label: 'Trash', icon: Trash2 },
+  // { path: '/trash', label: 'Trash', icon: Trash2 },
 ];
 
 const fileItems = [
