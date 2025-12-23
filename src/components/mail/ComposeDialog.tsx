@@ -231,6 +231,13 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
       // Remove the last selected user
       setSelectedUsers((prev) => prev.slice(0, -1));
     }
+
+    if (e.key === 'Enter' && searchTerm && profiles.length > 0) {
+      e.preventDefault();
+      const profile = profiles[0];
+      setSelectedUsers((prev) => [...prev, profile]);
+      setSearchTerm('');
+    }
   };
 
   const handleSend = async () => {
