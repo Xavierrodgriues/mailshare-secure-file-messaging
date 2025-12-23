@@ -59,6 +59,7 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId, mode = 'co
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoadingAllUsers, setIsLoadingAllUsers] = useState(false);
+  const [totalUserCount, setTotalUserCount] = useState<number>(0);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   const { data: profiles = [], isLoading: isSearching } = useProfiles(
@@ -69,6 +70,29 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId, mode = 'co
   const sendMessage = useSendMessage();
   const { saveDraftAsync, deleteDraft, getDraft } = useDrafts();
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+
+  // Fetch total user count
+  useEffect(() => {
+    if (open) {
+      const fetchCount = async () => {
+        const { count, error } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
+
+        if (!error && count !== null) {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { count: exactCount } = await supabase
+              .from('profiles')
+              .select('*', { count: 'exact', head: true })
+              .neq('id', user.id);
+            if (exactCount !== null) setTotalUserCount(exactCount);
+          }
+        }
+      };
+      fetchCount();
+    }
+  }, [open]);
 
   // Load draft if provided
   useEffect(() => {
@@ -284,13 +308,9 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
       if (error) throw error;
 
       if (allProfiles) {
-        setSelectedUsers((prev) => {
-          // Filter out users already selected
-          const newUsers = allProfiles.filter(
-            (p) => !prev.some((existing) => existing.id === p.id)
-          );
-          return [...prev, ...newUsers];
-        });
+        // Set all users directly
+        setSelectedUsers(allProfiles);
+        setTotalUserCount(allProfiles.length);
         toast.success(`Selected ${allProfiles.length} users`);
       }
     } catch (error) {
@@ -299,6 +319,11 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
     } finally {
       setIsLoadingAllUsers(false);
     }
+  };
+
+  const handleRemoveAllUsers = () => {
+    setSelectedUsers([]);
+    toast.success('Removed all recipients');
   };
 
   return (
@@ -319,15 +344,17 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleSelectAllUsers}
+                onClick={selectedUsers.length === totalUserCount && totalUserCount > 0 ? handleRemoveAllUsers : handleSelectAllUsers}
                 disabled={isLoadingAllUsers}
                 className="h-6 px-2 text-xs text-muted-foreground"
               >
                 {isLoadingAllUsers ? (
                   <>
                     <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    Selecting...
+                    Processing...
                   </>
+                ) : selectedUsers.length === totalUserCount && totalUserCount > 0 ? (
+                  "Remove All Users"
                 ) : (
                   "Select All Users"
                 )}
