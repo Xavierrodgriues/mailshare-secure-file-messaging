@@ -72,7 +72,7 @@ export default function DraftsPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="opacity-0 group-hover:opacity-100 transition-all text-destructive hover:text-destructive bg-white hover:bg-gray-100 rounded-full shadow-sm hover:scale-90"
+                    className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all text-destructive hover:text-destructive bg-white hover:bg-gray-100 rounded-full shadow-sm hover:scale-90"
                     onClick={(e) => handleDeleteDraft(e, draft.id)}
                   >
                     <Trash2 className="h-4 w-4" />
