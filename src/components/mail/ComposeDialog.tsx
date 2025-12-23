@@ -350,7 +350,7 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
                           >
                             <div className="flex flex-col">
                               <span>{profile.full_name}</span>
-                              <span className="text-xs text-muted-foreground">{profile.email}</span>
+                              <span className="text-xs">{profile.email}</span>
                             </div>
                           </CommandItem>
                         ))}
