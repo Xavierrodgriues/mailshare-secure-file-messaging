@@ -8,6 +8,8 @@ import { SearchProvider } from "@/contexts/SearchContext";
 import { FullScreenLoader } from "@/components/ui/FullScreenLoader";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
 import Sent from "./pages/Sent";
 import Drafts from "./pages/Drafts";
 import Trash from "./pages/Trash";
@@ -33,6 +35,8 @@ const AppContent = () => {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/sent" element={<Sent />} />
         <Route path="/drafts" element={<Drafts />} />
         <Route path="/trash" element={<Trash />} />
