@@ -211,7 +211,7 @@ export default function AdminLogin() {
                                     </div>
                                 </div>
 
-                                <Button
+                                {/* <Button
 
                                     onClick={() => handleVerify()}
                                     className="w-full h-12 !bg-[#3B82F6] hover:!bg-[#2563EB] text-white font-bold rounded-xl transition-all disabled:opacity-80"
@@ -219,7 +219,7 @@ export default function AdminLogin() {
                                 >
                                     {loading ? <Loader2 className="animate-spin mr-2" /> : null}
                                     Login <ArrowRight className="ml-2 h-4 w-4" />
-                                </Button>
+                                </Button> */}
                             </div>
                         </div>
                     )}
