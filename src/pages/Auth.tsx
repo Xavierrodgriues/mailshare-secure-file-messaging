@@ -20,8 +20,8 @@ const signUpSchema = z.object({
     .toLowerCase()
     .email('Please enter a valid email')
     .refine(
-      (email) => email.endsWith('@yuvii.com'),
-      { message: 'Email must be a @yuvii.com address' }
+      (email) => email.endsWith('@yuviiconsultancy.com') || email.endsWith('@yuviiconsultancy.internal'),
+      { message: 'Email should be @yuviiconsultancy.com or @yuviiconsultancy.internal' }
     ),
   password: z
     .string()

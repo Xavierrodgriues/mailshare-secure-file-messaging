@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -79,6 +80,11 @@ export function UserManagement({
 
     const handleAddSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const email = formData.email.toLowerCase();
+        if (!email.endsWith('@yuviiconsultancy.com') && !email.endsWith('@yuviiconsultancy.internal')) {
+            toast.error('Email should be @yuviiconsultancy.com or @yuviiconsultancy.internal');
+            return;
+        }
         await onAddUser(formData);
         setFormData({ fullName: '', email: '', password: '' });
         setIsAddDialogOpen(false);
@@ -242,13 +248,13 @@ export function UserManagement({
                                 </div>
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Work Email</Label>
+                                <Label htmlFor="email">Work Email (@yuviiconsultancy.com / .internal)</Label>
                                 <div className="relative">
                                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                     <Input
                                         id="email"
                                         type="email"
-                                        placeholder="user@yuvii.com"
+                                        placeholder="user@yuviiconsultancy.com"
                                         className="pl-10 h-11"
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}

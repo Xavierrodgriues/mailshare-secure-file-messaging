@@ -51,6 +51,11 @@ export default function AdminDashboard() {
     };
 
     const handleAddUser = async (formData: any) => {
+        const email = formData.email.toLowerCase();
+        if (!email.endsWith('@yuviiconsultancy.com') && !email.endsWith('@yuviiconsultancy.internal')) {
+            toast.error('Email should be @yuviiconsultancy.com or @yuviiconsultancy.internal');
+            return;
+        }
         setActionLoading(true);
         try {
             const { error: signUpError } = await supabase.auth.signUp({
