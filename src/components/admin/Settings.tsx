@@ -1,29 +1,320 @@
-import { Settings as SettingsIcon, Shield } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState } from 'react';
+import {
+    Settings as SettingsIcon,
+    Shield,
+    Globe,
+    Bell,
+    Zap,
+    Lock,
+    Save,
+    Mail,
+    Building2,
+    Database,
+    Fingerprint,
+    Languages
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 
 export function Settings() {
+    const [loading, setLoading] = useState(false);
+
+    const handleSave = () => {
+        setLoading(true);
+        // Simulate API call
+        setTimeout(() => {
+            setLoading(false);
+            toast.success("Configuration updated successfully");
+        }, 1200);
+    };
+
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
-            <div>
-                <h2 className="text-xl font-bold tracking-tight">System Settings</h2>
-                <p className="text-sm text-muted-foreground mt-1">Configure global platform parameters and security policies.</p>
+        <div className="space-y-8 animate-in fade-in duration-700">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight text-slate-900">Platform Configuration</h2>
+                    <p className="text-slate-500 mt-2 font-medium">Control global system parameters, security policies, and application branding.</p>
+                </div>
+                <Button
+                    onClick={handleSave}
+                    disabled={loading}
+                    className="bg-primary hover:bg-primary/90 text-white px-8 rounded-2xl h-12 shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                    {loading ? <Zap className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
+                    Save Changes
+                </Button>
             </div>
 
-            <Card className="border border-dashed bg-muted/20 py-24">
-                <CardContent className="flex flex-col items-center justify-center text-center">
-                    <div className="bg-background h-16 w-16 rounded-full flex items-center justify-center mb-4 shadow-sm">
-                        <SettingsIcon className="h-8 w-8 text-muted-foreground opacity-30" />
+            <Tabs defaultValue="identity" className="space-y-8">
+                <TabsList className="bg-slate-100 p-1.5 rounded-[20px] h-14 w-full md:w-auto overflow-x-auto justify-start md:justify-center">
+                    <TabsTrigger value="identity" className="rounded-2xl px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary font-bold transition-all h-11">
+                        <Building2 className="h-4 w-4 mr-2" />
+                        Identity
+                    </TabsTrigger>
+                    <TabsTrigger value="security" className="rounded-2xl px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary font-bold transition-all h-11">
+                        <Shield className="h-4 w-4 mr-2" />
+                        Security
+                    </TabsTrigger>
+                    <TabsTrigger value="notifications" className="rounded-2xl px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary font-bold transition-all h-11">
+                        <Bell className="h-4 w-4 mr-2" />
+                        Notifications
+                    </TabsTrigger>
+                    <TabsTrigger value="advanced" className="rounded-2xl px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary font-bold transition-all h-11">
+                        <SettingsIcon className="h-4 w-4 mr-2" />
+                        Advanced
+                    </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="identity" className="space-y-6 focus-visible:outline-none">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-2 space-y-6">
+                            <Card className="rounded-[32px] border-none shadow-xl shadow-slate-200/40 overflow-hidden">
+                                <CardHeader className="border-b border-slate-50 pb-6 bg-slate-50/30">
+                                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                                        <Globe className="h-5 w-5 text-primary" />
+                                        General Branding
+                                    </CardTitle>
+                                    <CardDescription className="font-medium">Define how the system identifies itself to users.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="pt-8 space-y-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="space-y-2.5">
+                                            <Label className="text-slate-700 font-bold ml-1">Platform Name</Label>
+                                            <Input defaultValue="Yuvii Admin Portal" className="h-12 rounded-2xl border-slate-200 focus:border-primary focus:ring-primary/10 transition-all font-medium" />
+                                        </div>
+                                        <div className="space-y-2.5">
+                                            <Label className="text-slate-700 font-bold ml-1">Organization Identifier</Label>
+                                            <Input defaultValue="Yuviiconsultancy" className="h-12 rounded-2xl border-slate-200 focus:border-primary focus:ring-primary/10 transition-all font-medium" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2.5">
+                                        <Label className="text-slate-700 font-bold ml-1">Support Endpoint Email</Label>
+                                        <div className="relative group">
+                                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+                                            <Input defaultValue="support@yuviiconsultancy.com" className="h-12 pl-11 rounded-2xl border-slate-200 focus:border-primary focus:ring-primary/10 transition-all font-medium" />
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="rounded-[32px] border-none shadow-xl shadow-slate-200/40 overflow-hidden">
+                                <CardHeader className="border-b border-slate-50 pb-6 bg-slate-50/30">
+                                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                                        <Languages className="h-5 w-5 text-indigo-500" />
+                                        Regional Settings
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="pt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="space-y-2.5">
+                                        <Label className="text-slate-700 font-bold ml-1">Default Locale</Label>
+                                        <Select defaultValue="en-us">
+                                            <SelectTrigger className="h-12 rounded-2xl border-slate-200 focus:ring-primary/10">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="en-us">English (US)</SelectItem>
+                                                <SelectItem value="en-gb">English (UK)</SelectItem>
+                                                <SelectItem value="es">Español</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2.5">
+                                        <Label className="text-slate-700 font-bold ml-1">Timezone Synchronization</Label>
+                                        <Select defaultValue="utc">
+                                            <SelectTrigger className="h-12 rounded-2xl border-slate-200 focus:ring-primary/10">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="utc">UTC (Coordinated Universal Time)</SelectItem>
+                                                <SelectItem value="ist">IST (India Standard Time)</SelectItem>
+                                                <SelectItem value="est">EST (Eastern Standard Time)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        <Card className="h-fit rounded-[32px] border-none shadow-xl shadow-slate-200/40 bg-gradient-to-br from-primary/10 to-indigo-500/10 overflow-hidden relative">
+                            <div className="absolute top-0 right-0 p-8 opacity-10">
+                                <Building2 className="h-32 w-32" />
+                            </div>
+                            <CardContent className="p-8 relative z-10 space-y-6">
+                                <h4 className="font-black text-primary text-xs uppercase tracking-[0.2em]">Deployment Info</h4>
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-slate-600 font-bold">Registry Status</span>
+                                        <span className="bg-white/60 backdrop-blur px-3 py-1 rounded-full text-primary font-black text-[10px]">VERIFIED</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-slate-600 font-bold">App Version</span>
+                                        <span className="text-slate-900 font-mono font-bold">v3.4.0-stable</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-slate-600 font-bold">Environment</span>
+                                        <span className="text-slate-900 font-bold">Production Cluster</span>
+                                    </div>
+                                </div>
+                                <div className="pt-4">
+                                    <Button variant="outline" className="w-full rounded-2xl border-white bg-white/40 hover:bg-white/60 font-bold text-slate-700 border-none shadow-sm h-12">
+                                        View Manifest Data
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
-                    <h3 className="text-lg font-bold">Configuration Panel Initializing</h3>
-                    <p className="text-sm text-muted-foreground mt-2 max-w-sm">
-                        Global system settings, API keys, and notification preferences will be configurable from this interface.
-                    </p>
-                    <div className="mt-8 flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-lg border border-indigo-100 text-indigo-700 text-xs font-medium">
-                        <Shield className="h-4 w-4" />
-                        Planned for Phase 2 implementation
+                </TabsContent>
+
+                <TabsContent value="security" className="space-y-6 focus-visible:outline-none">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <Card className="rounded-[32px] border-none shadow-xl shadow-slate-200/40 overflow-hidden">
+                            <CardHeader className="bg-slate-900 text-white pb-8">
+                                <CardTitle className="text-lg font-bold flex items-center gap-2">
+                                    <Fingerprint className="h-5 w-5 text-primary" />
+                                    Access Constraints
+                                </CardTitle>
+                                <CardDescription className="text-slate-400 font-medium">Configure how users authenticate with the system.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="pt-8 space-y-6">
+                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 transition-all hover:border-primary/20">
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-black text-slate-800 uppercase tracking-tight">Domain White-listing</p>
+                                        <p className="text-xs text-slate-500 font-medium">Restrict registration to @yuviiconsultancy.com</p>
+                                    </div>
+                                    <Switch defaultChecked className="data-[state=checked]:bg-primary" />
+                                </div>
+                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 transition-all hover:border-primary/20">
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-black text-slate-800 uppercase tracking-tight">Force Admin TOTP</p>
+                                        <p className="text-xs text-slate-500 font-medium">Require 2FA for all administrative accounts</p>
+                                    </div>
+                                    <Switch defaultChecked className="data-[state=checked]:bg-primary" />
+                                </div>
+                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 transition-all hover:border-primary/20">
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-black text-slate-800 uppercase tracking-tight">Session Persistence</p>
+                                        <p className="text-xs text-slate-500 font-medium">Invalidate sessions after 24 hours of inactivity</p>
+                                    </div>
+                                    <Switch className="data-[state=checked]:bg-primary" />
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <div className="space-y-8">
+                            <Card className="rounded-[32px] border-none shadow-xl shadow-slate-200/40 overflow-hidden">
+                                <CardHeader className="border-b border-slate-50 pb-6 bg-slate-50/30">
+                                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                                        <Lock className="h-5 w-5 text-rose-500" />
+                                        Encryption Policies
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="pt-8 space-y-6">
+                                    <div className="space-y-3">
+                                        <Label className="text-slate-700 font-bold ml-1">Master Key Rotation</Label>
+                                        <Select defaultValue="90">
+                                            <SelectTrigger className="h-12 rounded-2xl border-slate-200">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="30">Every 30 Days</SelectItem>
+                                                <SelectItem value="90">Every 90 Days</SelectItem>
+                                                <SelectItem value="never">Manual Only (Not Recommended)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="p-4 bg-rose-50 text-rose-700 rounded-2xl text-[11px] font-black uppercase flex items-start gap-3">
+                                        <Shield className="h-4 w-4 mt-0.5" />
+                                        Changing encryption frequencies will force a system-wide vault re-synchronization. Proceed with caution.
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="rounded-[32px] border-none shadow-xl shadow-slate-200/40 overflow-hidden bg-slate-900 relative">
+                                <div className="absolute inset-0 bg-primary/5 -z-10" />
+                                <CardContent className="p-8">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center">
+                                            <Database className="h-6 w-6 text-primary" />
+                                        </div>
+                                        <h4 className="text-white font-black text-lg">System Vault</h4>
+                                    </div>
+                                    <p className="text-slate-400 text-sm font-medium mb-6">
+                                        Manage secure internal communication buffers and database redundancy policies.
+                                    </p>
+                                    <Button className="w-full bg-slate-800 hover:bg-slate-700 text-white rounded-2xl border-none font-bold h-12">
+                                        Manage Storage Engines
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        </div>
                     </div>
-                </CardContent>
-            </Card>
+                </TabsContent>
+
+                <TabsContent value="notifications" className="space-y-6 focus-visible:outline-none">
+                    <Card className="rounded-[40px] border-none shadow-2xl shadow-slate-200/40 p-12 text-center">
+                        <div className="bg-slate-50 h-24 w-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <Bell className="h-10 w-10 text-slate-300 animate-bounce" />
+                        </div>
+                        <h3 className="text-2xl font-black text-slate-900">Push Notification Gateway</h3>
+                        <p className="text-slate-500 mt-3 max-w-lg mx-auto leading-relaxed">
+                            Configure internal SMTP relays and external notification providers (Firebase/OneSignal) to keep your team synchronized in real-time.
+                        </p>
+                        <div className="mt-10 flex flex-wrap justify-center gap-4">
+                            <Button variant="outline" className="rounded-full px-8 h-12 font-bold border-slate-200 text-slate-600">
+                                Configure Webhooks
+                            </Button>
+                            <Button className="rounded-full px-8 h-12 font-bold bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
+                                Setup SMTP Relay
+                            </Button>
+                        </div>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="advanced" className="space-y-6 focus-visible:outline-none">
+                    <Card className="rounded-[40px] border-none shadow-2xl shadow-slate-200/40 overflow-hidden ring-4 ring-rose-500/5 transition-all hover:ring-rose-500/10">
+                        <div className="bg-rose-500/10 p-8 flex items-center gap-4 border-b border-rose-100">
+                            <div className="h-12 w-12 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-500/20">
+                                <Zap className="h-6 w-6" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-rose-900">Danger Zone</h3>
+                                <p className="text-rose-600/70 text-sm font-medium">Critical system-wide administrative controls.</p>
+                            </div>
+                        </div>
+                        <CardContent className="p-8 space-y-6">
+                            <div className="flex items-center justify-between p-6 bg-white border-2 border-slate-50 rounded-3xl transition-all hover:border-rose-100 group">
+                                <div className="space-y-1">
+                                    <p className="text-sm font-black text-slate-800 uppercase tracking-tight group-hover:text-rose-600 transition-colors">Platform Maintenance Mode</p>
+                                    <p className="text-xs text-slate-500 font-medium">Disable all public user access while performing updates.</p>
+                                </div>
+                                <Switch className="data-[state=checked]:bg-rose-500" />
+                            </div>
+                            <div className="flex flex-col md:flex-row gap-4 pt-4">
+                                <Button variant="destructive" className="flex-1 rounded-2xl h-14 font-black uppercase text-xs tracking-widest shadow-lg shadow-rose-500/10">
+                                    Clear System Cache
+                                </Button>
+                                <Button variant="outline" className="flex-1 rounded-2xl h-14 font-black uppercase text-xs tracking-widest border-2 border-slate-100 hover:border-rose-100 text-slate-600">
+                                    Factory System Reset
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+
+            <div className="pt-10 text-center border-t border-slate-100">
+                <p className="text-[10px] text-slate-300 font-black uppercase tracking-[0.3em] flex items-center justify-center gap-3">
+                    <span className="h-px w-8 bg-slate-100" />
+                    Secure Infrastructure Management v3.4
+                    <span className="h-px w-8 bg-slate-100" />
+                </p>
+            </div>
         </div>
     );
 }

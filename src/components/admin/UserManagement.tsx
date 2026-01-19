@@ -82,7 +82,7 @@ export function UserManagement({
         e.preventDefault();
         const email = formData.email.toLowerCase();
         if (!email.endsWith('@yuviiconsultancy.com') && !email.endsWith('@yuviiconsultancy.internal')) {
-            toast.error('Email should be @yuviiconsultancy.com or @yuviiconsultancy.internal');
+            toast.error('Email should be @yuviiconsultancy.com');
             return;
         }
         await onAddUser(formData);
