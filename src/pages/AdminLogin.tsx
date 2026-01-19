@@ -159,6 +159,7 @@ export default function AdminLogin() {
                                             value={otp}
                                             onChange={(value) => setOtp(value)}
                                             onComplete={() => handleVerify()}
+                                            autoFocus
                                         >
                                             <InputOTPGroup className="gap-2">
                                                 {[0, 1, 2, 3, 4, 5].map((index) => (
@@ -195,6 +196,7 @@ export default function AdminLogin() {
                                             value={otp}
                                             onChange={(value) => setOtp(value)}
                                             onComplete={() => handleVerify()}
+                                            autoFocus
                                         >
                                             <InputOTPGroup className="gap-2">
                                                 {[0, 1, 2, 3, 4, 5].map((index) => (
@@ -208,23 +210,15 @@ export default function AdminLogin() {
                                         </InputOTP>
                                     </div>
                                 </div>
-                                {/* <Button
+
+                                <Button
+
                                     onClick={() => handleVerify()}
-                                    className="w-full h-12 !bg-[#3B82F6] hover:!bg-[#2563EB] text-white font-bold rounded-xl shadow-md transition-all mt-4 disabled:opacity-80"
+                                    className="w-full h-12 !bg-[#3B82F6] hover:!bg-[#2563EB] text-white font-bold rounded-xl transition-all disabled:opacity-80"
                                     disabled={loading || otp.length !== 6}
                                 >
                                     {loading ? <Loader2 className="animate-spin mr-2" /> : null}
-                                    Logi
-                                </Button> */}
-
-                                <Button
-                                
-                                onClick={() => handleVerify()}
-                                className="w-full h-12 !bg-[#3B82F6] hover:!bg-[#2563EB] text-white font-bold rounded-xl transition-all disabled:opacity-80"
-                                disabled={loading || otp.length !== 6}
-                            >
-                                {loading ? <Loader2 className="animate-spin mr-2" /> : null}
-                                Login <ArrowRight className="ml-2 h-4 w-4" />
+                                    Login <ArrowRight className="ml-2 h-4 w-4" />
                                 </Button>
                             </div>
                         </div>
