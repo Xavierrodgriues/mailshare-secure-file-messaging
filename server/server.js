@@ -11,14 +11,21 @@ app.use(express.json());
 
 import adminAuthRoutes from './routes/adminAuth.js';
 import adminRoutes from './routes/admin.js';
+import mailRoutes from './routes/mailRoutes.js';
 
 app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin', adminRoutes);
+
+// 👇 REGISTER INTERNAL MAIL API
+app.use('/api/internal-mail', mailRoutes);
+
 
 // Basic Route
 app.get('/', (req, res) => {
     res.send('MailShare Server Running');
 });
+
+
 
 // Database Connection
 mongoose.connect(process.env.MONGO_URI)
