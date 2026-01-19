@@ -88,6 +88,10 @@ export default {
           from: { opacity: "0", transform: "scale(0.95)" },
           to: { opacity: "1", transform: "scale(1)" },
         },
+        "progress": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(200%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -95,6 +99,7 @@ export default {
         "fade-in": "fade-in 0.3s ease-out",
         "slide-in": "slide-in 0.2s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
+        "progress": "progress 2s infinite linear",
       },
       boxShadow: {
         'glow': '0 0 20px hsl(var(--primary) / 0.15)',
