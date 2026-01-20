@@ -42,6 +42,10 @@ export default function AdminDashboard() {
                     'Authorization': `Bearer ${token}`
                 }
             });
+            if (response.status === 401) {
+                handleLogout();
+                return;
+            }
             const data = await response.json();
             if (data.domainWhitelistEnabled !== undefined) {
                 setDomainWhitelistEnabled(data.domainWhitelistEnabled);

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
     Users,
@@ -50,6 +51,13 @@ export function DashboardOverview({ totalUsers }: DashboardOverviewProps) {
                     'Authorization': `Bearer ${token}`
                 }
             });
+
+            if (response.status === 401) {
+                localStorage.removeItem('adminToken');
+                window.location.href = '/admin/login';
+                return;
+            }
+
             const data = await response.json();
             if (Array.isArray(data)) {
                 // Ensure IPs are cleaned up for display

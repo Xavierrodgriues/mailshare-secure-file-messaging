@@ -107,7 +107,7 @@ router.post('/verify', async (req, res) => {
             const clientIp = xForwardedFor ? xForwardedFor.split(',')[0].trim() : req.socket.remoteAddress;
             const normalizedIp = clientIp.replace('::ffff:', '');
 
-            await Session.findOneAndUpdate(
+            const session = await Session.findOneAndUpdate(
                 { adminId: admin._id, userAgent: req.headers['user-agent'], ip: normalizedIp },
                 {
                     email: admin.email,
@@ -119,7 +119,11 @@ router.post('/verify', async (req, res) => {
             );
 
             // Return success with a JWT token
-            const token = jwt.sign({ email: admin.email, id: admin._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '1h' });
+            const token = jwt.sign(
+                { email: admin.email, id: admin._id, sessionId: session._id },
+                process.env.JWT_SECRET || 'secret',
+                { expiresIn: '1h' }
+            );
 
             return res.json({
                 status: 'success',
