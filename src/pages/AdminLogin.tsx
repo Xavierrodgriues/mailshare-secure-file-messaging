@@ -21,7 +21,7 @@ import {
     InputOTPSlot,
 } from "@/components/ui/input-otp";
 
-const API_URL = 'http://localhost:5000/api/admin/auth';
+const API_URL = 'https://mailshare-admin-api.onrender.com/api/admin/auth';
 
 export default function AdminLogin() {
     const navigate = useNavigate();

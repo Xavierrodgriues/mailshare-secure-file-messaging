@@ -42,7 +42,7 @@ export function DashboardOverview({ totalUsers }: DashboardOverviewProps) {
         setLoadingSessions(true);
         try {
             const token = localStorage.getItem('adminToken');
-            const response = await fetch('http://localhost:5000/api/admin/sessions', {
+            const response = await fetch('https://mailshare-admin-api.onrender.com/api/admin/sessions', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -60,7 +60,7 @@ export function DashboardOverview({ totalUsers }: DashboardOverviewProps) {
 
     const fetchTimezone = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/settings/public');
+            const response = await fetch('https://mailshare-admin-api.onrender.com/api/settings/public');
             const data = await response.json();
             if (data.timezone) {
                 setTimezone(data.timezone);

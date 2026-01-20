@@ -59,7 +59,7 @@ export default function Auth() {
 
   const checkMaintenance = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/settings/public');
+      const response = await fetch('https://mailshare-admin-api.onrender.com/api/settings/public');
       const data = await response.json();
       setMaintenanceMode(!!data.maintenanceMode);
     } catch (error) {
@@ -84,7 +84,7 @@ export default function Auth() {
 
     // Final check for maintenance mode before processing
     try {
-      const resp = await fetch('http://localhost:5000/api/settings/public');
+      const resp = await fetch('https://mailshare-admin-api.onrender.com/api/settings/public');
       const settingsData = await resp.json();
       if (settingsData.maintenanceMode) {
         setMaintenanceMode(true);
