@@ -3,6 +3,8 @@ import speakeasy from 'speakeasy';
 import qrcode from 'qrcode';
 import jwt from 'jsonwebtoken';
 import Admin from '../models/Admin.js';
+import Session from '../models/Session.js';
+import { UAParser } from 'ua-parser-js';
 
 const router = express.Router();
 
@@ -95,6 +97,24 @@ router.post('/verify', async (req, res) => {
                 admin.isTotpEnabled = true;
                 await admin.save();
             }
+
+            // Record Session
+            const parser = new UAParser(req.headers['user-agent']);
+            const result = parser.getResult();
+            const deviceName = `${result.os.name || ''} ${result.browser.name || ''}`.trim() || 'Unknown Device';
+            const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+            const normalizedIp = clientIp.replace('::ffff:', '');
+
+            await Session.findOneAndUpdate(
+                { adminId: admin._id, userAgent: req.headers['user-agent'], ip: normalizedIp },
+                {
+                    email: admin.email,
+                    deviceName,
+                    lastSeen: Date.now(),
+                    isActive: true
+                },
+                { upsert: true, new: true }
+            );
 
             // Return success with a JWT token
             const token = jwt.sign({ email: admin.email, id: admin._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '1h' });

@@ -402,14 +402,14 @@ export function Settings() {
                                 />
 
                             </div>
-                            <div className="flex flex-col md:flex-row gap-4 pt-4">
+                            {/* <div className="flex flex-col md:flex-row gap-4 pt-4">
                                 <Button variant="destructive" className="flex-1 rounded-2xl h-14 font-black uppercase text-xs tracking-widest shadow-lg shadow-rose-500/10">
                                     Clear System Cache
                                 </Button>
                                 <Button variant="outline" className="flex-1 rounded-2xl h-14 font-black uppercase text-xs tracking-widest border-2 border-slate-100 hover:border-rose-100 text-slate-600">
                                     Factory System Reset
                                 </Button>
-                            </div>
+                            </div> */}
                         </CardContent>
                     </Card>
                 </TabsContent>

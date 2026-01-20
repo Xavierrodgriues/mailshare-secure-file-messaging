@@ -8,7 +8,11 @@ import {
     ArrowDownRight,
     Wifi,
     Timer,
-    Database
+    Database,
+    Laptop,
+    Smartphone,
+    Monitor,
+    Shield
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -21,15 +25,38 @@ export function DashboardOverview({ totalUsers }: DashboardOverviewProps) {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [lastRefresh] = useState(new Date());
     const [timezone, setTimezone] = useState('utc');
+    const [sessions, setSessions] = useState<any[]>([]);
+    const [loadingSessions, setLoadingSessions] = useState(true);
 
     useEffect(() => {
         fetchTimezone();
+        fetchSessions();
         const timer = setInterval(() => {
             setUptime(prev => prev + 1);
             setCurrentTime(new Date());
         }, 1000);
         return () => clearInterval(timer);
     }, []);
+
+    const fetchSessions = async () => {
+        setLoadingSessions(true);
+        try {
+            const token = localStorage.getItem('adminToken');
+            const response = await fetch('http://localhost:5000/api/admin/sessions', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+            if (Array.isArray(data)) {
+                setSessions(data);
+            }
+        } catch (error) {
+            console.error('Error fetching sessions:', error);
+        } finally {
+            setLoadingSessions(false);
+        }
+    };
 
     const fetchTimezone = async () => {
         try {
@@ -181,19 +208,73 @@ export function DashboardOverview({ totalUsers }: DashboardOverviewProps) {
                     </div>
                 </Card>
 
-                <Card className="rounded-[32px] border-none shadow-xl shadow-slate-200/40 h-[360px] flex items-center justify-center bg-white relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                    <div className="text-center p-8 relative z-10">
-                        <div className="bg-slate-50 w-20 h-20 rounded-[24px] flex items-center justify-center mx-auto mb-6 shadow-sm border border-slate-100 group-hover:-rotate-3 transition-transform duration-500">
-                            <ShieldCheck className="h-10 w-10 text-slate-900 opacity-20" />
+                <Card className="rounded-[32px] border-none shadow-xl shadow-slate-200/40 h-[360px] flex flex-col bg-white overflow-hidden">
+                    <CardHeader className="border-b border-slate-50 flex flex-row items-center justify-between py-5 px-8">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-2xl bg-slate-900 flex items-center justify-center shadow-lg shadow-slate-200">
+                                <Shield className="h-5 w-5 text-white" />
+                            </div>
+                            <div>
+                                <CardTitle className="text-lg font-black text-slate-900">Active Sessions</CardTitle>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Security Command Center</p>
+                            </div>
                         </div>
-                        <h3 className="text-xl font-black text-slate-900">Security Command Center</h3>
-                        <p className="text-sm text-slate-400 mt-3 max-w-[300px] mx-auto leading-relaxed">Real-time threat detection and secure audit log streaming will be available in the next security patch.</p>
-                        <div className="mt-4 flex justify-center gap-2">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className="h-1.5 w-1.5 rounded-full bg-slate-200 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
-                            ))}
-                        </div>
+                        <button
+                            onClick={fetchSessions}
+                            className="p-2 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-primary"
+                        >
+                            <Activity className={`h-4 w-4 ${loadingSessions ? 'animate-spin' : ''}`} />
+                        </button>
+                    </CardHeader>
+                    <CardContent className="p-0 overflow-y-auto custom-scrollbar">
+                        {loadingSessions ? (
+                            <div className="flex flex-col items-center justify-center h-48 gap-3">
+                                <Activity className="h-6 w-6 text-slate-200 animate-spin" />
+                                <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">Fetching active devices...</span>
+                            </div>
+                        ) : sessions.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-[280px] text-center p-8">
+                                <div className="bg-slate-50 w-16 h-16 rounded-3xl flex items-center justify-center mb-4">
+                                    <Monitor className="h-6 w-6 text-slate-300" />
+                                </div>
+                                <p className="text-sm font-bold text-slate-900">No active sessions</p>
+                                <p className="text-xs text-slate-400 mt-1">Global administrative logout currently active.</p>
+                            </div>
+                        ) : (
+                            <div className="divide-y divide-slate-50">
+                                {sessions.map((session, idx) => (
+                                    <div key={session._id} className="p-5 hover:bg-slate-50/50 transition-colors flex items-center justify-between group">
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center group-hover:bg-white transition-colors border border-slate-100/50">
+                                                {session.deviceName?.toLowerCase().includes('mobile') || session.deviceName?.toLowerCase().includes('android') || session.deviceName?.toLowerCase().includes('iphone') ? (
+                                                    <Smartphone className="h-5 w-5 text-slate-600" />
+                                                ) : (
+                                                    <Laptop className="h-5 w-5 text-slate-600" />
+                                                )}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-black text-slate-900">{session.deviceName}</p>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="text-[10px] font-mono font-bold text-primary py-0.5 px-1.5 bg-primary/5 rounded-md">{session.ip}</span>
+                                                    <span className="h-1 w-1 rounded-full bg-slate-300" />
+                                                    <span className="text-[10px] text-slate-400 font-bold uppercase">{new Date(session.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-1">
+                                            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-tight scale-90 origin-right">
+                                                <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
+                                                Active
+                                            </span>
+                                            <span className="text-[9px] text-slate-300 font-bold group-hover:text-slate-400 transition-colors px-1">ID: {session._id.slice(-6).toUpperCase()}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                    <div className="p-4 bg-slate-50/50 border-t border-slate-50 mt-auto">
+                        <p className="text-[10px] text-center text-slate-400 font-medium">Showing all verified administrative access points from the last 24 hours.</p>
                     </div>
                 </Card>
             </div>
