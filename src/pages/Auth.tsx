@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -45,12 +45,27 @@ export default function Auth() {
   const { user, signUp, signIn, loading: authLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     password: '',
     confirmPassword: '',
   });
+
+  useEffect(() => {
+    checkMaintenance();
+  }, []);
+
+  const checkMaintenance = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/settings/public');
+      const data = await response.json();
+      setMaintenanceMode(!!data.maintenanceMode);
+    } catch (error) {
+      console.error('Error checking maintenance mode:', error);
+    }
+  };
 
   if (authLoading) {
     return (
@@ -66,6 +81,20 @@ export default function Auth() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Final check for maintenance mode before processing
+    try {
+      const resp = await fetch('http://localhost:5000/api/settings/public');
+      const settingsData = await resp.json();
+      if (settingsData.maintenanceMode) {
+        setMaintenanceMode(true);
+        toast.error('Access restricted: System is currently under maintenance.');
+        return;
+      }
+    } catch (err) {
+      console.error('Submit maintenance check failed:', err);
+    }
+
     setLoading(true);
 
     try {
@@ -144,102 +173,122 @@ export default function Auth() {
               />
             </div>
             <CardTitle className="text-2xl font-display">
-              {isLogin ? 'Welcome back' : 'Create an account'}
+              {maintenanceMode ? 'System Maintenance' : (isLogin ? 'Welcome back' : 'Create an account')}
             </CardTitle>
             <CardDescription>
-              {isLogin
-                ? 'Enter your credentials to access your inbox'
-                : 'Fill in your details to get started'}
+              {maintenanceMode
+                ? 'The system is currently undergoing scheduled maintenance. Please try again later.'
+                : (isLogin ? 'Enter your credentials to access your inbox' : 'Fill in your details to get started')}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="fullName"
-                      placeholder="John Doe"
-                      className="pl-10"
-                      value={formData.fullName}
-                      onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                    />
-                  </div>
+            {maintenanceMode ? (
+              <div className="py-6 text-center space-y-4">
+                <div className="bg-rose-50 p-4 rounded-2xl flex items-center justify-center">
+                  <Lock className="h-10 w-10 text-rose-500 animate-pulse" />
                 </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    className="pl-10"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  />
-                </div>
+                <p className="text-sm text-slate-500 font-medium">
+                  We apologize for the inconvenience. Our team is working to improve your experience.
+                </p>
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                  className="w-full rounded-2xl h-12 font-bold"
+                >
+                  Check Portal Status
+                </Button>
               </div>
+            ) : (
+              <>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {!isLogin && (
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName">Full Name</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="fullName"
+                          placeholder="John Doe"
+                          className="pl-10"
+                          value={formData.fullName}
+                          onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  )}
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    className="pl-10"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      placeholder="••••••••"
-                      className="pl-10"
-                      value={formData.confirmPassword}
-                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    />
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        className="pl-10"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      />
+                    </div>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="••••••••"
+                        className="pl-10"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  {!isLogin && (
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="confirmPassword"
+                          type="password"
+                          placeholder="••••••••"
+                          className="pl-10"
+                          value={formData.confirmPassword}
+                          onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        {isLogin ? 'Sign In' : 'Create Account'}
+                        <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </form>
+
+                <div className="mt-6 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setIsLogin(!isLogin)}
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    {isLogin
+                      ? "Don't have an account? Sign up"
+                      : 'Already have an account? Sign in'}
+                  </button>
                 </div>
-              )}
-
-              <Button type="submit" className="w-full" size="lg" disabled={loading}>
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    {isLogin ? 'Sign In' : 'Create Account'}
-                    <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </form>
-
-            <div className="mt-6 text-center">
-              <button
-                type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                {isLogin
-                  ? "Don't have an account? Sign up"
-                  : 'Already have an account? Sign in'}
-              </button>
-            </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

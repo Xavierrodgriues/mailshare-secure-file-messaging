@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Settings as SettingsIcon,
     Shield,
@@ -24,14 +24,76 @@ import { toast } from "sonner";
 
 export function Settings() {
     const [loading, setLoading] = useState(false);
+    const [maintenanceMode, setMaintenanceMode] = useState(false);
 
-    const handleSave = () => {
+    useEffect(() => {
+        fetchSettings();
+    }, []);
+
+    const fetchSettings = async () => {
+        try {
+            const token = localStorage.getItem('adminToken');
+            const response = await fetch('http://localhost:5000/api/settings', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+            if (data.maintenanceMode !== undefined) {
+                setMaintenanceMode(data.maintenanceMode);
+            }
+        } catch (error) {
+            console.error('Error fetching settings:', error);
+        }
+    };
+
+    const saveMaintenanceMode = async (value: boolean) => {
+        try {
+            const token = localStorage.getItem('adminToken');
+            const response = await fetch('http://localhost:5000/api/settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ maintenanceMode: value })
+            });
+
+            if (response.ok) {
+                toast.success(`Maintenance mode ${value ? 'enabled' : 'disabled'}`);
+            } else {
+                toast.error("Failed to update maintenance mode");
+            }
+        } catch (error) {
+            toast.error("An error occurred while saving maintenance mode");
+        }
+    };
+
+    const handleSave = async () => {
+
         setLoading(true);
-        // Simulate API call
-        setTimeout(() => {
+        try {
+            const token = localStorage.getItem('adminToken');
+            const response = await fetch('http://localhost:5000/api/settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ maintenanceMode })
+            });
+
+            if (response.ok) {
+                toast.success("Configuration updated successfully");
+            } else {
+                const errorData = await response.json();
+                toast.error(`Failed to update configuration: ${errorData.error || response.statusText}`);
+            }
+        } catch (error) {
+            toast.error("An error occurred while saving. Please check your connection.");
+        } finally {
             setLoading(false);
-            toast.success("Configuration updated successfully");
-        }, 1200);
+        }
     };
 
     return (
@@ -293,7 +355,16 @@ export function Settings() {
                                     <p className="text-sm font-black text-slate-800 uppercase tracking-tight group-hover:text-rose-600 transition-colors">Platform Maintenance Mode</p>
                                     <p className="text-xs text-slate-500 font-medium">Disable all public user access while performing updates.</p>
                                 </div>
-                                <Switch className="data-[state=checked]:bg-rose-500" />
+                                <Switch
+                                    checked={maintenanceMode}
+                                    onCheckedChange={(checked) => {
+                                        setMaintenanceMode(checked);
+                                        // Auto-save maintenance mode for better UX
+                                        saveMaintenanceMode(checked);
+                                    }}
+                                    className="data-[state=checked]:bg-rose-500"
+                                />
+
                             </div>
                             <div className="flex flex-col md:flex-row gap-4 pt-4">
                                 <Button variant="destructive" className="flex-1 rounded-2xl h-14 font-black uppercase text-xs tracking-widest shadow-lg shadow-rose-500/10">

@@ -12,9 +12,11 @@ app.use(express.json());
 import adminAuthRoutes from './routes/adminAuth.js';
 import adminRoutes from './routes/admin.js';
 import mailRoutes from './routes/mailRoutes.js';
+import settingsRoutes from './routes/settings.js';
 
 app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // 👇 REGISTER INTERNAL MAIL API
 app.use('/api/internal-mail', mailRoutes);
