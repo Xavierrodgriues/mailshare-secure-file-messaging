@@ -25,6 +25,8 @@ import { toast } from "sonner";
 export function Settings() {
     const [loading, setLoading] = useState(false);
     const [maintenanceMode, setMaintenanceMode] = useState(false);
+    const [locale, setLocale] = useState('en-us');
+    const [timezone, setTimezone] = useState('utc');
 
     useEffect(() => {
         fetchSettings();
@@ -42,12 +44,14 @@ export function Settings() {
             if (data.maintenanceMode !== undefined) {
                 setMaintenanceMode(data.maintenanceMode);
             }
+            if (data.locale) setLocale(data.locale);
+            if (data.timezone) setTimezone(data.timezone);
         } catch (error) {
             console.error('Error fetching settings:', error);
         }
     };
 
-    const saveMaintenanceMode = async (value: boolean) => {
+    const saveSettings = async (updates: { maintenanceMode?: boolean, locale?: string, timezone?: string }) => {
         try {
             const token = localStorage.getItem('adminToken');
             const response = await fetch('http://localhost:5000/api/settings', {
@@ -56,21 +60,24 @@ export function Settings() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ maintenanceMode: value })
+                body: JSON.stringify(updates)
             });
 
             if (response.ok) {
-                toast.success(`Maintenance mode ${value ? 'enabled' : 'disabled'}`);
+                if (updates.maintenanceMode !== undefined) {
+                    toast.success(`Maintenance mode ${updates.maintenanceMode ? 'enabled' : 'disabled'}`);
+                } else if (updates.locale || updates.timezone) {
+                    toast.success("Regional settings updated");
+                }
             } else {
-                toast.error("Failed to update maintenance mode");
+                toast.error("Failed to update settings");
             }
         } catch (error) {
-            toast.error("An error occurred while saving maintenance mode");
+            toast.error("An error occurred while saving settings");
         }
     };
 
     const handleSave = async () => {
-
         setLoading(true);
         try {
             const token = localStorage.getItem('adminToken');
@@ -80,7 +87,7 @@ export function Settings() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ maintenanceMode })
+                body: JSON.stringify({ maintenanceMode, locale, timezone })
             });
 
             if (response.ok) {
@@ -95,6 +102,7 @@ export function Settings() {
             setLoading(false);
         }
     };
+
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700">
@@ -175,7 +183,13 @@ export function Settings() {
                                 <CardContent className="pt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-2.5">
                                         <Label className="text-slate-700 font-bold ml-1">Default Locale</Label>
-                                        <Select defaultValue="en-us">
+                                        <Select
+                                            value={locale}
+                                            onValueChange={(val) => {
+                                                setLocale(val);
+                                                saveSettings({ locale: val });
+                                            }}
+                                        >
                                             <SelectTrigger className="h-12 rounded-2xl border-slate-200 focus:ring-primary/10">
                                                 <SelectValue />
                                             </SelectTrigger>
@@ -188,7 +202,13 @@ export function Settings() {
                                     </div>
                                     <div className="space-y-2.5">
                                         <Label className="text-slate-700 font-bold ml-1">Timezone Synchronization</Label>
-                                        <Select defaultValue="utc">
+                                        <Select
+                                            value={timezone}
+                                            onValueChange={(val) => {
+                                                setTimezone(val);
+                                                saveSettings({ timezone: val });
+                                            }}
+                                        >
                                             <SelectTrigger className="h-12 rounded-2xl border-slate-200 focus:ring-primary/10">
                                                 <SelectValue />
                                             </SelectTrigger>
@@ -196,6 +216,9 @@ export function Settings() {
                                                 <SelectItem value="utc">UTC (Coordinated Universal Time)</SelectItem>
                                                 <SelectItem value="ist">IST (India Standard Time)</SelectItem>
                                                 <SelectItem value="est">EST (Eastern Standard Time)</SelectItem>
+                                                <SelectItem value="cst">CST (Central Standard Time)</SelectItem>
+                                                <SelectItem value="mst">MST (Mountain Standard Time)</SelectItem>
+                                                <SelectItem value="pst">PST (Pacific Standard Time)</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -360,7 +383,7 @@ export function Settings() {
                                     onCheckedChange={(checked) => {
                                         setMaintenanceMode(checked);
                                         // Auto-save maintenance mode for better UX
-                                        saveMaintenanceMode(checked);
+                                        saveSettings({ maintenanceMode: checked });
                                     }}
                                     className="data-[state=checked]:bg-rose-500"
                                 />

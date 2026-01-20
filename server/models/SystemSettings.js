@@ -5,6 +5,14 @@ const systemSettingsSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    locale: {
+        type: String,
+        default: 'en-us'
+    },
+    timezone: {
+        type: String,
+        default: 'utc'
+    },
     updatedAt: {
         type: Date,
         default: Date.now

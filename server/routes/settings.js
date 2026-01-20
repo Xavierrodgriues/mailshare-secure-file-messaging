@@ -24,9 +24,17 @@ router.get('/public', async (req, res) => {
     try {
         let settings = await SystemSettings.findOne();
         if (!settings) {
-            settings = await SystemSettings.create({ maintenanceMode: false });
+            settings = await SystemSettings.create({
+                maintenanceMode: false,
+                locale: 'en-us',
+                timezone: 'utc'
+            });
         }
-        res.json({ maintenanceMode: settings.maintenanceMode });
+        res.json({
+            maintenanceMode: settings.maintenanceMode,
+            locale: settings.locale,
+            timezone: settings.timezone
+        });
     } catch (err) {
         console.error('Error in /public settings:', err);
         res.status(500).json({ error: 'Error fetching public settings' });
@@ -38,7 +46,11 @@ router.get('/', authenticateAdmin, async (req, res) => {
     try {
         let settings = await SystemSettings.findOne();
         if (!settings) {
-            settings = await SystemSettings.create({ maintenanceMode: false });
+            settings = await SystemSettings.create({
+                maintenanceMode: false,
+                locale: 'en-us',
+                timezone: 'utc'
+            });
         }
         res.json(settings);
     } catch (err) {
@@ -49,14 +61,16 @@ router.get('/', authenticateAdmin, async (req, res) => {
 
 // UPDATE settings (Admin only)
 router.post('/', authenticateAdmin, async (req, res) => {
-    const { maintenanceMode } = req.body;
+    const { maintenanceMode, locale, timezone } = req.body;
     console.log('Received settings update request:', req.body);
     try {
         let settings = await SystemSettings.findOne();
         if (!settings) {
-            settings = new SystemSettings({ maintenanceMode });
+            settings = new SystemSettings({ maintenanceMode, locale, timezone });
         } else {
-            settings.maintenanceMode = maintenanceMode;
+            if (maintenanceMode !== undefined) settings.maintenanceMode = maintenanceMode;
+            if (locale !== undefined) settings.locale = locale;
+            if (timezone !== undefined) settings.timezone = timezone;
             settings.updatedAt = Date.now();
         }
         await settings.save();

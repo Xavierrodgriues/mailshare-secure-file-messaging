@@ -191,7 +191,14 @@ export default function Auth() {
                   We apologize for the inconvenience. Our team is working to improve your experience.
                 </p>
                 <Button
-                  onClick={() => window.location.reload()}
+                  onClick={async () => {
+                    const t = toast.loading('Checking system status...');
+                    await checkMaintenance();
+                    setTimeout(() => {
+                      toast.dismiss(t);
+                      toast.success('System status synchronized');
+                    }, 800);
+                  }}
                   variant="outline"
                   className="w-full rounded-2xl h-12 font-bold"
                 >

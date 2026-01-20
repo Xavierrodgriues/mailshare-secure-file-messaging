@@ -20,14 +20,39 @@ export function DashboardOverview({ totalUsers }: DashboardOverviewProps) {
     const [uptime, setUptime] = useState(0);
     const [currentTime, setCurrentTime] = useState(new Date());
     const [lastRefresh] = useState(new Date());
+    const [timezone, setTimezone] = useState('utc');
 
     useEffect(() => {
+        fetchTimezone();
         const timer = setInterval(() => {
             setUptime(prev => prev + 1);
             setCurrentTime(new Date());
         }, 1000);
         return () => clearInterval(timer);
     }, []);
+
+    const fetchTimezone = async () => {
+        try {
+            const response = await fetch('http://localhost:5000/api/settings/public');
+            const data = await response.json();
+            if (data.timezone) {
+                setTimezone(data.timezone);
+            }
+        } catch (error) {
+            console.error('Error fetching timezone:', error);
+        }
+    };
+
+    const getTimezoneString = (tz: string) => {
+        switch (tz.toLowerCase()) {
+            case 'ist': return 'Asia/Kolkata';
+            case 'est': return 'America/New_York';
+            case 'cst': return 'America/Chicago';
+            case 'mst': return 'America/Denver';
+            case 'pst': return 'America/Los_Angeles';
+            default: return 'UTC';
+        }
+    };
 
     const formatUptime = (seconds: number) => {
         const hrs = Math.floor(seconds / 3600);
@@ -39,14 +64,25 @@ export function DashboardOverview({ totalUsers }: DashboardOverviewProps) {
     const stats = [
         {
             title: "Live System Clock",
-            value: currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-            description: currentTime.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' }),
+            value: currentTime.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZone: getTimezoneString(timezone)
+            }),
+            description: currentTime.toLocaleDateString([], {
+                weekday: 'long',
+                month: 'short',
+                day: 'numeric',
+                timeZone: getTimezoneString(timezone)
+            }),
             icon: Clock,
-            trend: "Synchronized",
+            trend: timezone.toUpperCase(),
             trendType: "neutral",
             color: "text-blue-600",
             bgColor: "bg-blue-100/50",
         },
+
         {
             title: "Dashboard Session",
             value: formatUptime(uptime),
@@ -117,7 +153,7 @@ export function DashboardOverview({ totalUsers }: DashboardOverviewProps) {
                             </div>
                             <div className="mt-5 pt-4 border-t border-slate-50 flex items-center justify-between">
                                 <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter ${stat.trendType === 'up' ? 'bg-emerald-50 text-emerald-600' :
-                                        stat.trendType === 'down' ? 'bg-rose-50 text-rose-600' : 'bg-slate-50 text-slate-400'
+                                    stat.trendType === 'down' ? 'bg-rose-50 text-rose-600' : 'bg-slate-50 text-slate-400'
                                     }`}>
                                     {stat.trendType === 'up' && <Activity className="h-3 w-3 animate-pulse" />}
                                     {stat.trend}
