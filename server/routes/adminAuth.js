@@ -107,11 +107,15 @@ router.post('/verify', async (req, res) => {
             const clientIp = xForwardedFor ? xForwardedFor.split(',')[0].trim() : req.socket.remoteAddress;
             const normalizedIp = clientIp.replace('::ffff:', '');
 
+            const { fingerprintId } = req.body;
+
             const session = await Session.findOneAndUpdate(
-                { adminId: admin._id, userAgent: req.headers['user-agent'], ip: normalizedIp },
+                { adminId: admin._id, fingerprintId: fingerprintId || normalizedIp },
                 {
                     email: admin.email,
                     deviceName,
+                    ip: normalizedIp,
+                    userAgent: req.headers['user-agent'],
                     lastSeen: Date.now(),
                     isActive: true
                 },

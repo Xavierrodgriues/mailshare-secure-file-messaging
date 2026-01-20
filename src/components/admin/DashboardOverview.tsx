@@ -297,7 +297,7 @@ export function DashboardOverview({ totalUsers }: DashboardOverviewProps) {
                                             <div>
                                                 <p className="text-sm font-black text-slate-900">{session.deviceName}</p>
                                                 <div className="flex items-center gap-2 mt-1">
-                                                    <span className="text-[10px] font-mono font-bold text-primary py-0.5 px-1.5 bg-primary/5 rounded-md">{session.ip}</span>
+                                                    <span className="text-[10px] font-mono font-bold text-slate-400 py-0.5 px-1.5 bg-slate-100 rounded-md">ID: {session.fingerprintId?.slice(-8).toUpperCase() || 'LEGACY'}</span>
                                                     <span className="h-1 w-1 rounded-full bg-slate-300" />
                                                     <span className="text-[10px] text-slate-400 font-bold uppercase">{new Date(session.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                 </div>

@@ -31,6 +31,15 @@ export default function AdminLogin() {
     const [otp, setOtp] = useState('');
     const [qrCodeData, setQrCodeData] = useState<{ secret: string; qrCode: string } | null>(null);
 
+    const getFingerprint = () => {
+        let fp = localStorage.getItem('adminFingerprint');
+        if (!fp) {
+            fp = crypto.randomUUID();
+            localStorage.setItem('adminFingerprint', fp);
+        }
+        return fp;
+    };
+
     const handleEmailSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -71,10 +80,15 @@ export default function AdminLogin() {
 
         setLoading(true);
         try {
+            const fingerprint = getFingerprint();
             const res = await fetch(`${API_URL}/verify`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, token: otp }),
+                body: JSON.stringify({
+                    email,
+                    token: otp,
+                    fingerprintId: fingerprint
+                }),
             });
             const data = await res.json();
 
