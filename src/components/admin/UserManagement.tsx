@@ -52,6 +52,7 @@ interface UserManagementProps {
     onUpdateUser: (id: string, data: any) => Promise<void>;
     onDeleteUser: (id: string) => Promise<void>;
     fetchUsers: () => void;
+    domainWhitelistEnabled: boolean;
 }
 
 export function UserManagement({
@@ -61,7 +62,8 @@ export function UserManagement({
     onAddUser,
     onUpdateUser,
     onDeleteUser,
-    fetchUsers
+    fetchUsers,
+    domainWhitelistEnabled
 }: UserManagementProps) {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -81,7 +83,7 @@ export function UserManagement({
     const handleAddSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const email = formData.email.toLowerCase();
-        if (!email.endsWith('@yuviiconsultancy.com') && !email.endsWith('@yuviiconsultancy.internal')) {
+        if (domainWhitelistEnabled && !email.endsWith('@yuviiconsultancy.com') && !email.endsWith('@yuviiconsultancy.internal')) {
             toast.error('Email should be @yuviiconsultancy.com');
             return;
         }
@@ -248,7 +250,7 @@ export function UserManagement({
                                 </div>
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Work Email (@yuviiconsultancy.com / .internal)</Label>
+                                <Label htmlFor="email">Work Email {domainWhitelistEnabled ? '(@yuviiconsultancy.com / .internal)' : '(Any domain)'}</Label>
                                 <div className="relative">
                                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                     <Input

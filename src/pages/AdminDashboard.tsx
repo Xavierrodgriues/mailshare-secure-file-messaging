@@ -22,6 +22,7 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [currentView, setCurrentView] = useState('overview');
+    const [domainWhitelistEnabled, setDomainWhitelistEnabled] = useState(true);
 
     useEffect(() => {
         const adminToken = localStorage.getItem('adminToken');
@@ -30,7 +31,25 @@ export default function AdminDashboard() {
             return;
         }
         fetchUsers();
-    }, [navigate]);
+        fetchSettings();
+    }, [navigate, currentView]);
+
+    const fetchSettings = async () => {
+        try {
+            const token = localStorage.getItem('adminToken');
+            const response = await fetch('http://localhost:5000/api/settings', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+            if (data.domainWhitelistEnabled !== undefined) {
+                setDomainWhitelistEnabled(data.domainWhitelistEnabled);
+            }
+        } catch (error) {
+            console.error('Error fetching settings:', error);
+        }
+    };
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -52,7 +71,7 @@ export default function AdminDashboard() {
 
     const handleAddUser = async (formData: any) => {
         const email = formData.email.toLowerCase();
-        if (!email.endsWith('@yuviiconsultancy.com') && !email.endsWith('@yuviiconsultancy.internal')) {
+        if (domainWhitelistEnabled && !email.endsWith('@yuviiconsultancy.com') && !email.endsWith('@yuviiconsultancy.internal')) {
             toast.error('Email should be @yuviiconsultancy.com or @yuviiconsultancy.internal');
             return;
         }
@@ -157,6 +176,7 @@ export default function AdminDashboard() {
                         onUpdateUser={handleUpdateUser}
                         onDeleteUser={handleDeleteUser}
                         fetchUsers={fetchUsers}
+                        domainWhitelistEnabled={domainWhitelistEnabled}
                     />
                 );
             case 'logs':

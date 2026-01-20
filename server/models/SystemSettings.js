@@ -13,6 +13,10 @@ const systemSettingsSchema = new mongoose.Schema({
         type: String,
         default: 'utc'
     },
+    domainWhitelistEnabled: {
+        type: Boolean,
+        default: true
+    },
     updatedAt: {
         type: Date,
         default: Date.now

@@ -25,6 +25,7 @@ import { toast } from "sonner";
 export function Settings() {
     const [loading, setLoading] = useState(false);
     const [maintenanceMode, setMaintenanceMode] = useState(false);
+    const [domainWhitelistEnabled, setDomainWhitelistEnabled] = useState(true);
     const [locale, setLocale] = useState('en-us');
     const [timezone, setTimezone] = useState('utc');
 
@@ -44,6 +45,9 @@ export function Settings() {
             if (data.maintenanceMode !== undefined) {
                 setMaintenanceMode(data.maintenanceMode);
             }
+            if (data.domainWhitelistEnabled !== undefined) {
+                setDomainWhitelistEnabled(data.domainWhitelistEnabled);
+            }
             if (data.locale) setLocale(data.locale);
             if (data.timezone) setTimezone(data.timezone);
         } catch (error) {
@@ -51,7 +55,7 @@ export function Settings() {
         }
     };
 
-    const saveSettings = async (updates: { maintenanceMode?: boolean, locale?: string, timezone?: string }) => {
+    const saveSettings = async (updates: { maintenanceMode?: boolean, domainWhitelistEnabled?: boolean, locale?: string, timezone?: string }) => {
         try {
             const token = localStorage.getItem('adminToken');
             const response = await fetch('http://localhost:5000/api/settings', {
@@ -66,6 +70,8 @@ export function Settings() {
             if (response.ok) {
                 if (updates.maintenanceMode !== undefined) {
                     toast.success(`Maintenance mode ${updates.maintenanceMode ? 'enabled' : 'disabled'}`);
+                } else if (updates.domainWhitelistEnabled !== undefined) {
+                    toast.success(`Domain white-listing ${updates.domainWhitelistEnabled ? 'enabled' : 'disabled'}`);
                 } else if (updates.locale || updates.timezone) {
                     toast.success("Regional settings updated");
                 }
@@ -87,7 +93,7 @@ export function Settings() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ maintenanceMode, locale, timezone })
+                body: JSON.stringify({ maintenanceMode, domainWhitelistEnabled, locale, timezone })
             });
 
             if (response.ok) {
@@ -270,9 +276,16 @@ export function Settings() {
                                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 transition-all hover:border-primary/20">
                                     <div className="space-y-1">
                                         <p className="text-sm font-black text-slate-800 uppercase tracking-tight">Domain White-listing</p>
-                                        <p className="text-xs text-slate-500 font-medium">Restrict registration to @yuviiconsultancy.com</p>
+                                        <p className="text-xs text-slate-500 font-medium">Allow registeration to only @yuviiconsultancy.com</p>
                                     </div>
-                                    <Switch defaultChecked className="data-[state=checked]:bg-primary" />
+                                    <Switch
+                                        checked={domainWhitelistEnabled}
+                                        onCheckedChange={(checked) => {
+                                            setDomainWhitelistEnabled(checked);
+                                            saveSettings({ domainWhitelistEnabled: checked });
+                                        }}
+                                        className="data-[state=checked]:bg-primary"
+                                    />
                                 </div>
                                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 transition-all hover:border-primary/20">
                                     <div className="space-y-1">

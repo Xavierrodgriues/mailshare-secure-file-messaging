@@ -27,13 +27,15 @@ router.get('/public', async (req, res) => {
             settings = await SystemSettings.create({
                 maintenanceMode: false,
                 locale: 'en-us',
-                timezone: 'utc'
+                timezone: 'utc',
+                domainWhitelistEnabled: true
             });
         }
         res.json({
             maintenanceMode: settings.maintenanceMode,
             locale: settings.locale,
-            timezone: settings.timezone
+            timezone: settings.timezone,
+            domainWhitelistEnabled: settings.domainWhitelistEnabled
         });
     } catch (err) {
         console.error('Error in /public settings:', err);
@@ -49,7 +51,8 @@ router.get('/', authenticateAdmin, async (req, res) => {
             settings = await SystemSettings.create({
                 maintenanceMode: false,
                 locale: 'en-us',
-                timezone: 'utc'
+                timezone: 'utc',
+                domainWhitelistEnabled: true
             });
         }
         res.json(settings);
@@ -61,16 +64,17 @@ router.get('/', authenticateAdmin, async (req, res) => {
 
 // UPDATE settings (Admin only)
 router.post('/', authenticateAdmin, async (req, res) => {
-    const { maintenanceMode, locale, timezone } = req.body;
+    const { maintenanceMode, locale, timezone, domainWhitelistEnabled } = req.body;
     console.log('Received settings update request:', req.body);
     try {
         let settings = await SystemSettings.findOne();
         if (!settings) {
-            settings = new SystemSettings({ maintenanceMode, locale, timezone });
+            settings = new SystemSettings({ maintenanceMode, locale, timezone, domainWhitelistEnabled });
         } else {
             if (maintenanceMode !== undefined) settings.maintenanceMode = maintenanceMode;
             if (locale !== undefined) settings.locale = locale;
             if (timezone !== undefined) settings.timezone = timezone;
+            if (domainWhitelistEnabled !== undefined) settings.domainWhitelistEnabled = domainWhitelistEnabled;
             settings.updatedAt = Date.now();
         }
         await settings.save();
