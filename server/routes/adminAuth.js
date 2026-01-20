@@ -102,7 +102,9 @@ router.post('/verify', async (req, res) => {
             const parser = new UAParser(req.headers['user-agent']);
             const result = parser.getResult();
             const deviceName = `${result.os.name || ''} ${result.browser.name || ''}`.trim() || 'Unknown Device';
-            const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+            const xForwardedFor = req.headers['x-forwarded-for'];
+            const clientIp = xForwardedFor ? xForwardedFor.split(',')[0].trim() : req.socket.remoteAddress;
             const normalizedIp = clientIp.replace('::ffff:', '');
 
             await Session.findOneAndUpdate(

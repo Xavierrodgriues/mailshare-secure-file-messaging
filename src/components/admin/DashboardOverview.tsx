@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import {
     Users,
     Activity,
@@ -12,7 +13,9 @@ import {
     Laptop,
     Smartphone,
     Monitor,
-    Shield
+    Shield,
+    LogOut,
+    Trash2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -49,12 +52,43 @@ export function DashboardOverview({ totalUsers }: DashboardOverviewProps) {
             });
             const data = await response.json();
             if (Array.isArray(data)) {
-                setSessions(data);
+                // Ensure IPs are cleaned up for display
+                const cleanedData = data.map(s => ({
+                    ...s,
+                    ip: s.ip.split(',')[0].trim()
+                }));
+                setSessions(cleanedData);
             }
         } catch (error) {
             console.error('Error fetching sessions:', error);
         } finally {
             setLoadingSessions(false);
+        }
+    };
+
+    const handleLogoutDevice = async (sessionId: string) => {
+        if (!confirm('Are you sure you want to log out this device?')) return;
+
+        try {
+            const token = localStorage.getItem('adminToken');
+            const response = await fetch('https://mailshare-admin-api.onrender.com/api/admin/sessions/logout-device', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ sessionId })
+            });
+
+            if (response.ok) {
+                toast.success('Device logged out successfully');
+                fetchSessions();
+            } else {
+                toast.error('Failed to logout device');
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+            toast.error('An error occurred');
         }
     };
 
@@ -267,6 +301,13 @@ export function DashboardOverview({ totalUsers }: DashboardOverviewProps) {
                                                 Active
                                             </span>
                                             <span className="text-[9px] text-slate-300 font-bold group-hover:text-slate-400 transition-colors px-1">ID: {session._id.slice(-6).toUpperCase()}</span>
+                                            <button
+                                                onClick={() => handleLogoutDevice(session._id)}
+                                                className="mt-2 p-1.5 hover:bg-rose-50 rounded-lg text-slate-300 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100"
+                                                title="Revoke Access"
+                                            >
+                                                <LogOut className="h-3.5 w-3.5" />
+                                            </button>
                                         </div>
                                     </div>
                                 ))}
