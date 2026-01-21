@@ -21,6 +21,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { Button } from "@/components/ui/button";
+import { RevokeSessionModal } from "./RevokeSessionModal";
 
 interface DashboardOverviewProps {
     totalUsers: number;
@@ -101,8 +102,8 @@ export function DashboardOverview({ totalUsers, onLogout, refreshTrigger }: Dash
         }
     };
 
-    const handleLogoutDevice = async (sessionId: string) => {
-        if (!window.confirm('Are you sure you want to log out this device?')) return;
+    const handleConfirmLogout = async (password: string) => {
+        if (!revokingSessionId) return;
 
         setIsRevoking(true);
         try {
@@ -113,17 +114,27 @@ export function DashboardOverview({ totalUsers, onLogout, refreshTrigger }: Dash
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ sessionId })
+                body: JSON.stringify({ sessionId: revokingSessionId, password })
             });
+
+            const data = await response.json();
 
             if (response.ok) {
                 toast.success('Device logged out successfully');
                 // Immediately update local state for better UX
-                setSessions(prev => prev.filter(s => s._id !== sessionId));
-                fetchSessions(true); // Silent refresh to sync with server
+                setSessions(prev => prev.filter(s => s._id !== revokingSessionId));
+                setRevokingSessionId(null);
             } else {
-                const data = await response.json();
-                toast.error(data.error || 'Failed to logout device');
+                if (data.selfLogout) {
+                    toast.error(data.error, { duration: 10000 });
+                    localStorage.removeItem('adminToken');
+                    localStorage.removeItem('adminSessionStart');
+                    setTimeout(() => {
+                        window.location.href = '/admin/login';
+                    }, 2000);
+                } else {
+                    toast.error(data.error || 'Failed to logout device');
+                }
             }
         } catch (error) {
             console.error('Logout error:', error);
@@ -343,7 +354,7 @@ export function DashboardOverview({ totalUsers, onLogout, refreshTrigger }: Dash
                                             </span>
                                             <span className="text-[9px] text-slate-300 font-bold group-hover:text-slate-400 transition-colors px-1">ID: {session._id.slice(-6).toUpperCase()}</span>
                                             <button
-                                                onClick={() => handleLogoutDevice(session._id)}
+                                                onClick={() => setRevokingSessionId(session._id)}
                                                 className="mt-2 p-1.5 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-500 transition-all"
                                                 title="Revoke Access"
                                             >
@@ -361,6 +372,12 @@ export function DashboardOverview({ totalUsers, onLogout, refreshTrigger }: Dash
                 </Card>
             </div>
 
+            <RevokeSessionModal
+                isOpen={revokingSessionId !== null}
+                onClose={() => setRevokingSessionId(null)}
+                onConfirm={handleConfirmLogout}
+                isLoading={isRevoking}
+            />
         </div>
     );
 }

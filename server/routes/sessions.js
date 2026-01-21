@@ -19,10 +19,40 @@ router.get('/', authenticateAdmin, async (req, res) => {
 
 // DELETE/INVALIDATE a session (Secure logout)
 router.post('/logout-device', authenticateAdmin, async (req, res) => {
-    const { sessionId } = req.body;
-    console.log('[DEBUG] Logout Device request:', { sessionId });
+    const { sessionId, password } = req.body;
+    const currentSessionId = req.admin.sessionId;
 
     try {
+        const currentSession = await Session.findById(currentSessionId);
+        if (!currentSession) return res.status(404).json({ error: 'Current session not found' });
+
+        if (password !== 'fakeadmin') {
+            currentSession.revocationAttempts = (currentSession.revocationAttempts || 0) + 1;
+            await currentSession.save();
+
+            if (currentSession.revocationAttempts >= 3) {
+                currentSession.isActive = false;
+                await currentSession.save();
+
+                // Notify clients about this session being revoked
+                req.app.get('io').emit('session_update', { type: 'logout', sessionId: currentSessionId });
+
+                return res.status(403).json({
+                    error: 'Maximum attempts reached. Your session has been terminated for security.',
+                    selfLogout: true
+                });
+            }
+
+            return res.status(401).json({
+                error: `Incorrect password. ${3 - currentSession.revocationAttempts} attempts remaining before account logout.`,
+                attemptsRemaining: 3 - currentSession.revocationAttempts
+            });
+        }
+
+        // Correct password - reset attempts and proceed
+        currentSession.revocationAttempts = 0;
+        await currentSession.save();
+
         await Session.findByIdAndUpdate(sessionId, { isActive: false });
 
         // Notify clients about the session update

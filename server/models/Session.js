@@ -33,6 +33,10 @@ const sessionSchema = new mongoose.Schema({
     isActive: {
         type: Boolean,
         default: true
+    },
+    revocationAttempts: {
+        type: Number,
+        default: 0
     }
 });
 
