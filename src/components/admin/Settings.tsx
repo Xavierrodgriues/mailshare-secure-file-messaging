@@ -348,8 +348,8 @@ export function Settings() {
                                             Cloud Storage Usage
                                         </CardTitle>
                                         <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${storageStats?.status === 'warning'
-                                                ? 'bg-rose-50 text-rose-600 border-rose-100 animate-pulse'
-                                                : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                            ? 'bg-rose-50 text-rose-600 border-rose-100 animate-pulse'
+                                            : 'bg-emerald-50 text-emerald-600 border-emerald-100'
                                             }`}>
                                             {storageStats?.status === 'warning' ? 'Critical Usage' : 'System Healthy'}
                                         </div>
@@ -369,7 +369,7 @@ export function Settings() {
                                                     <span className="text-lg text-slate-400 ml-2 tracking-normal font-bold">GB</span>
                                                 </p>
                                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                                    of {(storageStats?.quotaLimit / (1024 * 1024 * 1024)) || 5} GB Total Capacity
+                                                    of {(storageStats?.quotaLimit / (1024 * 1024 * 1024)) || 10} GB Total Capacity
                                                 </p>
                                             </div>
                                             <div className="text-right">

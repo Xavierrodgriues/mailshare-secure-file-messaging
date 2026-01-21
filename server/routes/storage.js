@@ -32,8 +32,8 @@ router.get('/stats', authenticateAdmin, async (req, res) => {
 
         const totalBytes = userFilesBytes + logsBytes + systemBytes;
 
-        // System quota (fixed at 5GB for this demo as requested)
-        const QUOTA_LIMIT = 5 * 1024 * 1024 * 1024;
+        // System quota (Cloudflare R2 Free Tier is 10GB)
+        const QUOTA_LIMIT = 10 * 1024 * 1024 * 1024;
 
         res.json({
             totalBytes,
