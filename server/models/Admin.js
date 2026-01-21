@@ -13,6 +13,10 @@ const adminSchema = new mongoose.Schema({
     isTotpEnabled: {
         type: Boolean,
         default: false
+    },
+    password: {
+        type: String,
+        required: true
     }
 });
 

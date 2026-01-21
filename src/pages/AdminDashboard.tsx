@@ -177,7 +177,7 @@ export default function AdminDashboard() {
     const renderView = () => {
         switch (currentView) {
             case 'overview':
-                return <DashboardOverview totalUsers={users.length} />;
+                return <DashboardOverview totalUsers={users.length} onLogout={handleLogout} />;
             case 'users':
                 return (
                     <UserManagement
