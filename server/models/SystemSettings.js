@@ -17,6 +17,14 @@ const systemSettingsSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    shortSessionTimeout: {
+        type: Boolean,
+        default: false
+    },
+    shortSessionTimeout: {
+        type: Boolean,
+        default: false
+    },
     updatedAt: {
         type: Date,
         default: Date.now

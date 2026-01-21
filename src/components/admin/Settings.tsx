@@ -28,6 +28,7 @@ export function Settings() {
     const [domainWhitelistEnabled, setDomainWhitelistEnabled] = useState(true);
     const [locale, setLocale] = useState('en-us');
     const [timezone, setTimezone] = useState('utc');
+    const [shortSessionTimeout, setShortSessionTimeout] = useState(false);
 
     useEffect(() => {
         fetchSettings();
@@ -50,12 +51,15 @@ export function Settings() {
             }
             if (data.locale) setLocale(data.locale);
             if (data.timezone) setTimezone(data.timezone);
+            if (data.shortSessionTimeout !== undefined) {
+                setShortSessionTimeout(data.shortSessionTimeout);
+            }
         } catch (error) {
             console.error('Error fetching settings:', error);
         }
     };
 
-    const saveSettings = async (updates: { maintenanceMode?: boolean, domainWhitelistEnabled?: boolean, locale?: string, timezone?: string }) => {
+    const saveSettings = async (updates: { maintenanceMode?: boolean, domainWhitelistEnabled?: boolean, locale?: string, timezone?: string, shortSessionTimeout?: boolean }) => {
         try {
             const token = localStorage.getItem('adminToken');
             const response = await fetch('http://localhost:5000/api/settings', {
@@ -74,6 +78,8 @@ export function Settings() {
                     toast.success(`Domain white-listing ${updates.domainWhitelistEnabled ? 'enabled' : 'disabled'}`);
                 } else if (updates.locale || updates.timezone) {
                     toast.success("Regional settings updated");
+                } else if (updates.shortSessionTimeout !== undefined) {
+                    toast.success(`Session persistence ${updates.shortSessionTimeout ? 'enabled' : 'disabled'}`);
                 }
             } else {
                 toast.error("Failed to update settings");
@@ -93,7 +99,7 @@ export function Settings() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ maintenanceMode, domainWhitelistEnabled, locale, timezone })
+                body: JSON.stringify({ maintenanceMode, domainWhitelistEnabled, locale, timezone, shortSessionTimeout })
             });
 
             if (response.ok) {
@@ -299,7 +305,14 @@ export function Settings() {
                                         <p className="text-sm font-black text-slate-800 uppercase tracking-tight">Session Persistence</p>
                                         <p className="text-xs text-slate-500 font-medium">Invalidate sessions after 24 hours of inactivity</p>
                                     </div>
-                                    <Switch className="data-[state=checked]:bg-primary" />
+                                    <Switch
+                                        checked={shortSessionTimeout}
+                                        onCheckedChange={(checked) => {
+                                            setShortSessionTimeout(checked);
+                                            saveSettings({ shortSessionTimeout: checked });
+                                        }}
+                                        className="data-[state=checked]:bg-primary"
+                                    />
                                 </div>
                             </CardContent>
                         </Card>

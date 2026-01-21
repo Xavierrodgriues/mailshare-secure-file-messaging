@@ -23,7 +23,8 @@ router.get('/public', async (req, res) => {
             maintenanceMode: settings.maintenanceMode,
             locale: settings.locale,
             timezone: settings.timezone,
-            domainWhitelistEnabled: settings.domainWhitelistEnabled
+            domainWhitelistEnabled: settings.domainWhitelistEnabled,
+            shortSessionTimeout: settings.shortSessionTimeout
         });
     } catch (err) {
         console.error('Error in /public settings:', err);
@@ -52,7 +53,7 @@ router.get('/', authenticateAdmin, async (req, res) => {
 
 // UPDATE settings (Admin only)
 router.post('/', authenticateAdmin, async (req, res) => {
-    const { maintenanceMode, locale, timezone, domainWhitelistEnabled } = req.body;
+    const { maintenanceMode, locale, timezone, domainWhitelistEnabled, shortSessionTimeout } = req.body;
     console.log('Received settings update request:', req.body);
     try {
         let settings = await SystemSettings.findOne();
@@ -63,6 +64,7 @@ router.post('/', authenticateAdmin, async (req, res) => {
             if (locale !== undefined) settings.locale = locale;
             if (timezone !== undefined) settings.timezone = timezone;
             if (domainWhitelistEnabled !== undefined) settings.domainWhitelistEnabled = domainWhitelistEnabled;
+            if (shortSessionTimeout !== undefined) settings.shortSessionTimeout = shortSessionTimeout;
             settings.updatedAt = Date.now();
         }
         await settings.save();

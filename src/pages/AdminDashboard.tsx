@@ -76,6 +76,15 @@ export default function AdminDashboard() {
                     duration: 5000,
                 });
             }
+
+            // Handle timeout notification
+            if (data.type === 'logout' && data.reason === 'timeout') {
+                toast.error('Session Expired', {
+                    description: 'Your session has been terminated due to inactivity.',
+                    duration: 10000,
+                });
+                handleLogout();
+            }
         });
 
         fetchUsers();
@@ -83,7 +92,7 @@ export default function AdminDashboard() {
 
         // Background session validity check
         const interval = setInterval(() => {
-            fetchSettings();
+            fetchSettings(true); // Pass true for background poll
         }, 5000);
 
         return () => {
@@ -94,13 +103,19 @@ export default function AdminDashboard() {
         };
     }, [navigate]);
 
-    const fetchSettings = async () => {
+    const fetchSettings = async (isBackground = false) => {
         try {
             const token = localStorage.getItem('adminToken');
+            const headers: Record<string, string> = {
+                'Authorization': `Bearer ${token}`
+            };
+
+            if (isBackground) {
+                headers['X-Background-Poll'] = 'true';
+            }
+
             const response = await fetch('http://localhost:5000/api/settings', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers
             });
             if (response.status === 401) {
                 handleLogout();
