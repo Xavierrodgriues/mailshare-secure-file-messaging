@@ -11,7 +11,10 @@ import {
     Building2,
     Database,
     Fingerprint,
-    Languages
+    Languages,
+    HardDrive,
+    Info,
+    Clock
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -29,10 +32,27 @@ export function Settings() {
     const [locale, setLocale] = useState('en-us');
     const [timezone, setTimezone] = useState('utc');
     const [shortSessionTimeout, setShortSessionTimeout] = useState(false);
+    const [storageStats, setStorageStats] = useState<any>(null);
 
     useEffect(() => {
         fetchSettings();
+        fetchStorageStats();
     }, []);
+
+    const fetchStorageStats = async () => {
+        try {
+            const token = localStorage.getItem('adminToken');
+            const response = await fetch('http://localhost:5000/api/admin/storage/stats', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+            setStorageStats(data);
+        } catch (error) {
+            console.error('Error fetching storage stats:', error);
+        }
+    };
 
     const fetchSettings = async () => {
         try {
@@ -318,49 +338,108 @@ export function Settings() {
                         </Card>
 
                         <div className="space-y-8">
-                            <Card className="rounded-[32px] border-none shadow-xl shadow-slate-200/40 overflow-hidden">
-                                <CardHeader className="border-b border-slate-50 pb-6 bg-slate-50/30">
-                                    <CardTitle className="text-lg font-bold flex items-center gap-2">
-                                        <Lock className="h-5 w-5 text-rose-500" />
-                                        Encryption Policies
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="pt-8 space-y-6">
-                                    <div className="space-y-3">
-                                        <Label className="text-slate-700 font-bold ml-1">Master Key Rotation</Label>
-                                        <Select defaultValue="90">
-                                            <SelectTrigger className="h-12 rounded-2xl border-slate-200">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="30">Every 30 Days</SelectItem>
-                                                <SelectItem value="90">Every 90 Days</SelectItem>
-                                                <SelectItem value="never">Manual Only (Not Recommended)</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="p-4 bg-rose-50 text-rose-700 rounded-2xl text-[11px] font-black uppercase flex items-start gap-3">
-                                        <Shield className="h-4 w-4 mt-0.5" />
-                                        Changing encryption frequencies will force a system-wide vault re-synchronization. Proceed with caution.
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="rounded-[32px] border-none shadow-xl shadow-slate-200/40 overflow-hidden bg-slate-900 relative">
-                                <div className="absolute inset-0 bg-primary/5 -z-10" />
-                                <CardContent className="p-8">
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center">
-                                            <Database className="h-6 w-6 text-primary" />
+                            <Card className="rounded-[40px] border-none shadow-2xl shadow-slate-200/5 overflow-hidden bg-white group">
+                                <CardHeader className="p-8 pb-0">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <CardTitle className="text-xl font-black text-slate-900 flex items-center gap-3">
+                                            <div className="p-2.5 bg-primary/10 rounded-2xl">
+                                                <HardDrive className="h-6 w-6 text-primary" />
+                                            </div>
+                                            Cloud Storage Usage
+                                        </CardTitle>
+                                        <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${storageStats?.status === 'warning'
+                                                ? 'bg-rose-50 text-rose-600 border-rose-100 animate-pulse'
+                                                : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                            }`}>
+                                            {storageStats?.status === 'warning' ? 'Critical Usage' : 'System Healthy'}
                                         </div>
-                                        <h4 className="text-white font-black text-lg">System Vault</h4>
                                     </div>
-                                    <p className="text-slate-400 text-sm font-medium mb-6">
-                                        Manage secure internal communication buffers and database redundancy policies.
-                                    </p>
-                                    <Button className="w-full bg-slate-800 hover:bg-slate-700 text-white rounded-2xl border-none font-bold h-12">
-                                        Manage Storage Engines
-                                    </Button>
+                                    <CardDescription className="text-slate-400 font-medium pl-14">
+                                        Storage health diagnostics from Cloudflare R2 Gateway.
+                                    </CardDescription>
+                                </CardHeader>
+
+                                <CardContent className="p-8 pt-10 space-y-10">
+                                    {/* Mobile Style Storage Bar */}
+                                    <div className="space-y-6">
+                                        <div className="flex items-end justify-between px-1">
+                                            <div className="space-y-1">
+                                                <p className="text-4xl font-black text-slate-900 tracking-tighter">
+                                                    {storageStats ? (storageStats.totalBytes / (1024 * 1024 * 1024)).toFixed(2) : '0.00'}
+                                                    <span className="text-lg text-slate-400 ml-2 tracking-normal font-bold">GB</span>
+                                                </p>
+                                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                                    of {(storageStats?.quotaLimit / (1024 * 1024 * 1024)) || 5} GB Total Capacity
+                                                </p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-2xl font-black text-primary">
+                                                    {storageStats?.percentageUsed?.toFixed(1) || '0.0'}%
+                                                </p>
+                                                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Occupied</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="h-4 w-full bg-slate-50 rounded-full overflow-hidden flex shadow-inner p-1 border border-slate-100/50">
+                                            {storageStats?.breakdown ? storageStats.breakdown.map((item: any, idx: number) => (
+                                                <div
+                                                    key={item.name}
+                                                    className={`h-full first:rounded-l-full last:rounded-r-full transition-all duration-700 delay-${idx * 100} ${item.color}`}
+                                                    style={{ width: `${(item.bytes / storageStats.quotaLimit) * 100}%` }}
+                                                />
+                                            )) : (
+                                                <div className="h-full w-0 bg-primary transition-all duration-1000" />
+                                            )}
+                                        </div>
+
+                                        <div className="flex flex-wrap gap-6 px-1">
+                                            {storageStats?.breakdown?.map((item: any) => (
+                                                <div key={item.name} className="flex items-center gap-2">
+                                                    <div className={`h-2.5 w-2.5 rounded-full ${item.color}`} />
+                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-tight">{item.name}</span>
+                                                    <span className="text-[10px] font-bold text-slate-300">{(item.bytes / (1024 * 1024)).toFixed(1)}MB</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Data Grid */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-5 bg-slate-50/50 rounded-[24px] border border-slate-100 group-hover:bg-white group-hover:shadow-sm transition-all duration-300">
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <div className="p-2 bg-indigo-50 rounded-xl">
+                                                    <Mail className="h-4 w-4 text-indigo-600" />
+                                                </div>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Objects</p>
+                                            </div>
+                                            <p className="text-xl font-black text-slate-800">{storageStats?.fileCount || 0}</p>
+                                            <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase">Active R2 Blobs</p>
+                                        </div>
+
+                                        <div className="p-5 bg-slate-50/50 rounded-[24px] border border-slate-100 group-hover:bg-white group-hover:shadow-sm transition-all duration-300">
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <div className="p-2 bg-amber-50 rounded-xl">
+                                                    <Database className="h-4 w-4 text-amber-600" />
+                                                </div>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Bucket Name</p>
+                                            </div>
+                                            <p className="text-sm font-black text-slate-800 truncate">{storageStats?.bucketName || 'N/A'}</p>
+                                            <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase">Cloudflare Target</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-slate-300">
+                                            <Clock className="h-3.5 w-3.5" />
+                                            <span className="text-[10px] font-bold uppercase tracking-widest">
+                                                Last Synced: {storageStats ? new Date(storageStats.lastUpdated).toLocaleTimeString() : '---'}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                            <span className="text-[9px] font-black text-emerald-600/70 uppercase tracking-tighter">Live Connection</span>
+                                        </div>
+                                    </div>
                                 </CardContent>
                             </Card>
                         </div>
