@@ -1,6 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import Session from '../models/Session.js';
+import Log from '../models/Log.js';
 import { authenticateAdmin } from '../utils/auth.js';
 
 const router = express.Router();
@@ -37,6 +38,17 @@ router.post('/logout-device', authenticateAdmin, async (req, res) => {
                 // Notify clients about this session being revoked
                 req.app.get('io').emit('session_update', { type: 'logout', sessionId: currentSessionId });
 
+                // Log self-logout
+                const log = new Log({
+                    adminId: req.admin.id,
+                    email: req.admin.email,
+                    action: 'LOGOUT',
+                    details: 'Admin automatically logged out after 3 failed revocation attempts',
+                    ip: req.ip
+                });
+                await log.save();
+                req.app.get('io').emit('system_log', log);
+
                 return res.status(403).json({
                     error: 'Maximum attempts reached. Your session has been terminated for security.',
                     selfLogout: true
@@ -57,6 +69,17 @@ router.post('/logout-device', authenticateAdmin, async (req, res) => {
 
         // Notify clients about the session update
         req.app.get('io').emit('session_update', { type: 'logout', sessionId });
+
+        // Log revocation
+        const log = new Log({
+            adminId: req.admin.id,
+            email: req.admin.email,
+            action: 'SESSION_REVOKED',
+            details: `Revoked session ID: ${sessionId}`,
+            ip: req.ip
+        });
+        await log.save();
+        req.app.get('io').emit('system_log', log);
 
         res.json({ success: true, message: 'Device logged out' });
     } catch (err) {

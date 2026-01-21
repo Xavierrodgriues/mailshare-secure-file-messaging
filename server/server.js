@@ -27,11 +27,13 @@ import adminRoutes from './routes/admin.js';
 import mailRoutes from './routes/mailRoutes.js';
 import settingsRoutes from './routes/settings.js';
 import sessionsRoutes from './routes/sessions.js';
+import logsRoutes from './routes/logs.js';
 
 app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/admin/sessions', sessionsRoutes);
+app.use('/api/admin/logs', logsRoutes);
 
 // 👇 REGISTER INTERNAL MAIL API
 app.use('/api/internal-mail', mailRoutes);

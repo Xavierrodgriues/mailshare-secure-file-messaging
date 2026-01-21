@@ -1,6 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import SystemSettings from '../models/SystemSettings.js';
+import Log from '../models/Log.js';
 import { authenticateAdmin } from '../utils/auth.js';
 
 const router = express.Router();
@@ -65,6 +66,18 @@ router.post('/', authenticateAdmin, async (req, res) => {
             settings.updatedAt = Date.now();
         }
         await settings.save();
+
+        // Log settings update
+        const log = new Log({
+            adminId: req.admin.id,
+            email: req.admin.email,
+            action: 'SETTINGS_CHANGED',
+            details: `Updated system settings: ${Object.keys(req.body).join(', ')}`,
+            ip: req.ip
+        });
+        await log.save();
+        req.app.get('io').emit('system_log', log);
+
         console.log('Settings successfully saved to MongoDB:', settings);
         res.json(settings);
     } catch (err) {

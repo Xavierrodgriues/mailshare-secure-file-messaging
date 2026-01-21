@@ -2,6 +2,7 @@
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
+import Log from '../models/Log.js';
 import { authenticateAdmin } from '../utils/auth.js';
 
 const router = express.Router();
@@ -31,6 +32,17 @@ router.post('/delete-user', authenticateAdmin, async (req, res) => {
       await supabaseAdmin.from('profiles').delete().eq('id', userId);
 
     if (profileError) throw profileError;
+
+    // Log deletion
+    const log = new Log({
+      adminId: req.admin.id,
+      email: req.admin.email,
+      action: 'USER_DELETED',
+      details: `Deleted user ID: ${userId}`,
+      ip: req.ip
+    });
+    await log.save();
+    req.app.get('io').emit('system_log', log);
 
     return res.json({ success: true });
   } catch (error) {

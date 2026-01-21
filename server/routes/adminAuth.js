@@ -4,6 +4,7 @@ import qrcode from 'qrcode';
 import jwt from 'jsonwebtoken';
 import Admin from '../models/Admin.js';
 import Session from '../models/Session.js';
+import Log from '../models/Log.js';
 import { UAParser } from 'ua-parser-js';
 
 const router = express.Router();
@@ -131,6 +132,17 @@ router.post('/verify', async (req, res) => {
 
             // Notify clients about the session update
             req.app.get('io').emit('session_update', { type: 'login', email: admin.email });
+
+            // Create system log
+            const log = new Log({
+                adminId: admin._id,
+                email: admin.email,
+                action: 'LOGIN',
+                details: `Admin logged in from device: ${deviceName}`,
+                ip: req.ip
+            });
+            await log.save();
+            req.app.get('io').emit('system_log', log);
 
             return res.json({
                 status: 'success',
