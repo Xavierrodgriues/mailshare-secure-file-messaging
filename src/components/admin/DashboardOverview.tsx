@@ -50,11 +50,20 @@ export function DashboardOverview({ totalUsers }: DashboardOverviewProps) {
             }
             setCurrentTime(new Date());
         }, 1000);
-        return () => clearInterval(timer);
+
+        // Automatic session list refresh every 10 seconds
+        const sessionInterval = setInterval(() => {
+            fetchSessions(true);
+        }, 10000);
+
+        return () => {
+            clearInterval(timer);
+            clearInterval(sessionInterval);
+        };
     }, []);
 
-    const fetchSessions = async () => {
-        setLoadingSessions(true);
+    const fetchSessions = async (silent = false) => {
+        if (!silent) setLoadingSessions(true);
         try {
             const token = localStorage.getItem('adminToken');
             const response = await fetch('https://mailshare-admin-api.onrender.com/api/admin/sessions', {
@@ -273,7 +282,7 @@ export function DashboardOverview({ totalUsers }: DashboardOverviewProps) {
                             </div>
                         </div>
                         <button
-                            onClick={fetchSessions}
+                            onClick={() => fetchSessions()}
                             className="p-2 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-primary"
                         >
                             <Activity className={`h-4 w-4 ${loadingSessions ? 'animate-spin' : ''}`} />
