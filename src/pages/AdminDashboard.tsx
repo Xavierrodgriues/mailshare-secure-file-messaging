@@ -32,6 +32,13 @@ export default function AdminDashboard() {
         }
         fetchUsers();
         fetchSettings();
+
+        // Background session validity check
+        const interval = setInterval(() => {
+            fetchSettings();
+        }, 5000);
+
+        return () => clearInterval(interval);
     }, [navigate, currentView]);
 
     const fetchSettings = async () => {
