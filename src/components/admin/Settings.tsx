@@ -36,7 +36,7 @@ export function Settings() {
     const fetchSettings = async () => {
         try {
             const token = localStorage.getItem('adminToken');
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/settings', {
+            const response = await fetch('http://localhost:5000/api/settings', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -58,7 +58,7 @@ export function Settings() {
     const saveSettings = async (updates: { maintenanceMode?: boolean, domainWhitelistEnabled?: boolean, locale?: string, timezone?: string }) => {
         try {
             const token = localStorage.getItem('adminToken');
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/settings', {
+            const response = await fetch('http://localhost:5000/api/settings', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -87,7 +87,7 @@ export function Settings() {
         setLoading(true);
         try {
             const token = localStorage.getItem('adminToken');
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/settings', {
+            const response = await fetch('http://localhost:5000/api/settings', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

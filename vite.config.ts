@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       '/api': {
-        target: 'https://mailshare-admin-api.onrender.com',
+        target: 'http://localhost:5000',
         changeOrigin: true,
       },
     },

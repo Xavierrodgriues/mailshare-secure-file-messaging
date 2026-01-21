@@ -20,15 +20,6 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 interface DashboardOverviewProps {
@@ -51,11 +42,8 @@ export function DashboardOverview({ totalUsers, onLogout }: DashboardOverviewPro
     const [timezone, setTimezone] = useState('utc');
     const [sessions, setSessions] = useState<any[]>([]);
     const [loadingSessions, setLoadingSessions] = useState(true);
-    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-    const [password, setPassword] = useState('');
-    const [failedAttempts, setFailedAttempts] = useState(0);
     const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
-    const [verifyingPassword, setVerifyingPassword] = useState(false);
+    const [isRevoking, setIsRevoking] = useState(false);
 
     useEffect(() => {
         fetchTimezone();
@@ -83,7 +71,7 @@ export function DashboardOverview({ totalUsers, onLogout }: DashboardOverviewPro
         if (!silent) setLoadingSessions(true);
         try {
             const token = localStorage.getItem('adminToken');
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/admin/sessions', {
+            const response = await fetch('http://localhost:5000/api/admin/sessions', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -112,62 +100,40 @@ export function DashboardOverview({ totalUsers, onLogout }: DashboardOverviewPro
     };
 
     const handleLogoutDevice = async (sessionId: string) => {
-        toast.info('Opening security prompt...');
-        setRevokingSessionId(sessionId);
-        setIsPasswordModalOpen(true);
-        setPassword('');
-    };
+        if (!window.confirm('Are you sure you want to log out this device?')) return;
 
-    const confirmSecureLogout = async () => {
-        if (!revokingSessionId || !password) return;
-
-        setVerifyingPassword(true);
+        setIsRevoking(true);
         try {
             const token = localStorage.getItem('adminToken');
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/admin/sessions/logout-device', {
+            const response = await fetch('http://localhost:5000/api/admin/sessions/logout-device', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ sessionId: revokingSessionId, password })
+                body: JSON.stringify({ sessionId })
             });
-
-            const data = await response.json();
 
             if (response.ok) {
                 toast.success('Device logged out successfully');
-                setIsPasswordModalOpen(false);
-                setFailedAttempts(0);
-                fetchSessions();
+                // Immediately update local state for better UX
+                setSessions(prev => prev.filter(s => s._id !== sessionId));
+                fetchSessions(true); // Silent refresh to sync with server
             } else {
-                if (data.code === 'INVALID_PASSWORD') {
-                    const newAttempts = failedAttempts + 1;
-                    setFailedAttempts(newAttempts);
-
-                    if (newAttempts >= 3) {
-                        toast.error('Too many failed attempts. Security logout triggered.');
-                        setIsPasswordModalOpen(false);
-                        onLogout?.();
-                    } else {
-                        toast.error(`Invalid password. Attempt ${newAttempts}/3`);
-                        setPassword('');
-                    }
-                } else {
-                    toast.error(data.error || 'Failed to logout device');
-                }
+                const data = await response.json();
+                toast.error(data.error || 'Failed to logout device');
             }
         } catch (error) {
             console.error('Logout error:', error);
             toast.error('An error occurred');
         } finally {
-            setVerifyingPassword(false);
+            setIsRevoking(false);
         }
     };
 
     const fetchTimezone = async () => {
         try {
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/settings/public');
+            const response = await fetch('http://localhost:5000/api/settings/public');
             const data = await response.json();
             if (data.timezone) {
                 setTimezone(data.timezone);
@@ -393,56 +359,6 @@ export function DashboardOverview({ totalUsers, onLogout }: DashboardOverviewPro
                 </Card>
             </div>
 
-            <Dialog open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen}>
-                <DialogContent className="sm:max-w-[425px] rounded-[32px] border-none shadow-2xl">
-                    <DialogHeader>
-                        <DialogTitle className="text-2xl font-black text-slate-900 flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-2xl bg-rose-50 flex items-center justify-center">
-                                <Shield className="h-5 w-5 text-rose-500" />
-                            </div>
-                            Confirm Security
-                        </DialogTitle>
-                        <DialogDescription className="text-slate-400 font-medium pt-2">
-                            Enter your administrator password to authorize the remote session revocation. You have <span className="text-rose-500 font-bold">{3 - failedAttempts} attempts</span> remaining.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="py-6">
-                        <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Password</label>
-                            <Input
-                                type="password"
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="h-14 rounded-2xl border-slate-100 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-mono"
-                                autoFocus
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') confirmSecureLogout();
-                                }}
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter className="gap-2 sm:gap-0">
-                        <Button
-                            variant="ghost"
-                            onClick={() => setIsPasswordModalOpen(false)}
-                            className="rounded-2xl font-bold text-slate-400 hover:text-slate-600"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={confirmSecureLogout}
-                            disabled={verifyingPassword || !password}
-                            className="rounded-2xl font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xl shadow-slate-200"
-                        >
-                            {verifyingPassword ? (
-                                <Activity className="h-4 w-4 animate-spin mr-2" />
-                            ) : null}
-                            Authorize Logout
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }

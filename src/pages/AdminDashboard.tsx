@@ -44,7 +44,7 @@ export default function AdminDashboard() {
     const fetchSettings = async () => {
         try {
             const token = localStorage.getItem('adminToken');
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/settings', {
+            const response = await fetch('http://localhost:5000/api/settings', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
