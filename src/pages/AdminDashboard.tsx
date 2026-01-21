@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -9,11 +9,22 @@ import { DashboardOverview } from '@/components/admin/DashboardOverview';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { SystemLogs } from '@/components/admin/SystemLogs';
 import { Settings } from '@/components/admin/Settings';
+import { io, Socket } from 'socket.io-client';
+import { v4 as uuidv4 } from 'uuid';
 
 interface Profile {
     id: string;
     full_name: string;
     email: string;
+}
+
+export interface AdminNotification {
+    id: string;
+    title: string;
+    message: string;
+    time: Date;
+    type: 'login' | 'logout' | 'system';
+    read: boolean;
 }
 
 export default function AdminDashboard() {
@@ -23,6 +34,9 @@ export default function AdminDashboard() {
     const [actionLoading, setActionLoading] = useState(false);
     const [currentView, setCurrentView] = useState('overview');
     const [domainWhitelistEnabled, setDomainWhitelistEnabled] = useState(true);
+    const [notifications, setNotifications] = useState<AdminNotification[]>([]);
+    const [sessionRefreshTrigger, setSessionRefreshTrigger] = useState(0);
+    const socketRef = useRef<Socket | null>(null);
 
     useEffect(() => {
         const adminToken = localStorage.getItem('adminToken');
@@ -30,6 +44,40 @@ export default function AdminDashboard() {
             navigate('/admin/login');
             return;
         }
+
+        // Setup Socket.io for real-time updates and notifications
+        socketRef.current = io('http://localhost:5000');
+
+        socketRef.current.on('connect', () => {
+            console.log('Connected to socket server');
+        });
+
+        socketRef.current.on('session_update', (data) => {
+            console.log('Session update received:', data);
+
+            // Trigger session refresh in DashboardOverview if it's rendered
+            setSessionRefreshTrigger(prev => prev + 1);
+
+            // Add notification for new logins
+            if (data.type === 'login') {
+                const newNotif: AdminNotification = {
+                    id: uuidv4(),
+                    title: 'New Admin Login',
+                    message: `${data.email} has logged into the admin panel.`,
+                    time: new Date(),
+                    type: 'login',
+                    read: false
+                };
+                setNotifications(prev => [newNotif, ...prev]);
+
+                // Enhanced toast notification
+                toast.success('Security Alert: New Admin Login', {
+                    description: `${data.email} just accessed the dashboard.`,
+                    duration: 5000,
+                });
+            }
+        });
+
         fetchUsers();
         fetchSettings();
 
@@ -38,8 +86,13 @@ export default function AdminDashboard() {
             fetchSettings();
         }, 5000);
 
-        return () => clearInterval(interval);
-    }, [navigate, currentView]);
+        return () => {
+            clearInterval(interval);
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+            }
+        };
+    }, [navigate]);
 
     const fetchSettings = async () => {
         try {
@@ -174,10 +227,24 @@ export default function AdminDashboard() {
         }
     };
 
+    const handleRemoveNotification = (id: string) => {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+    };
+
+    const handleClearAllNotifications = () => {
+        setNotifications([]);
+    };
+
     const renderView = () => {
         switch (currentView) {
             case 'overview':
-                return <DashboardOverview totalUsers={users.length} onLogout={handleLogout} />;
+                return (
+                    <DashboardOverview
+                        totalUsers={users.length}
+                        onLogout={handleLogout}
+                        refreshTrigger={sessionRefreshTrigger}
+                    />
+                );
             case 'users':
                 return (
                     <UserManagement
@@ -196,7 +263,7 @@ export default function AdminDashboard() {
             case 'settings':
                 return <Settings />;
             default:
-                return <DashboardOverview totalUsers={users.length} />;
+                return <DashboardOverview totalUsers={users.length} refreshTrigger={sessionRefreshTrigger} />;
         }
     };
 
@@ -205,7 +272,13 @@ export default function AdminDashboard() {
             <div className="flex min-h-screen w-full bg-slate-50/50">
                 <AdminSidebar currentView={currentView} onViewChange={setCurrentView} />
                 <SidebarInset className="flex flex-col">
-                    <AdminHeader title={getViewTitle()} onLogout={handleLogout} />
+                    <AdminHeader
+                        title={getViewTitle()}
+                        onLogout={handleLogout}
+                        notifications={notifications}
+                        onRemoveNotification={handleRemoveNotification}
+                        onClearAll={handleClearAllNotifications}
+                    />
                     <main className="flex-1 p-6 md:p-8 lg:p-10">
                         <div className="mx-auto max-w-7xl">
                             {renderView()}
