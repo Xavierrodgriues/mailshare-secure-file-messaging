@@ -153,6 +153,7 @@ export default function AdminDashboard() {
 
     const handleLogout = () => {
         localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminSessionStart');
         navigate('/admin/login');
     };
 

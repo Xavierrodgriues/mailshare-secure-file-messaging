@@ -25,7 +25,15 @@ interface DashboardOverviewProps {
 }
 
 export function DashboardOverview({ totalUsers }: DashboardOverviewProps) {
-    const [uptime, setUptime] = useState(0);
+    const [uptime, setUptime] = useState(() => {
+        const startTime = localStorage.getItem('adminSessionStart');
+        if (startTime) {
+            return Math.floor((Date.now() - parseInt(startTime)) / 1000);
+        }
+        const now = Date.now().toString();
+        localStorage.setItem('adminSessionStart', now);
+        return 0;
+    });
     const [currentTime, setCurrentTime] = useState(new Date());
     const [lastRefresh] = useState(new Date());
     const [timezone, setTimezone] = useState('utc');
@@ -36,7 +44,10 @@ export function DashboardOverview({ totalUsers }: DashboardOverviewProps) {
         fetchTimezone();
         fetchSessions();
         const timer = setInterval(() => {
-            setUptime(prev => prev + 1);
+            const startTime = localStorage.getItem('adminSessionStart');
+            if (startTime) {
+                setUptime(Math.floor((Date.now() - parseInt(startTime)) / 1000));
+            }
             setCurrentTime(new Date());
         }, 1000);
         return () => clearInterval(timer);

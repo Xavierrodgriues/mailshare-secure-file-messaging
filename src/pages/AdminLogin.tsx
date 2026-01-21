@@ -94,6 +94,7 @@ export default function AdminLogin() {
 
             if (data.status === 'success') {
                 localStorage.setItem('adminToken', data.token);
+                localStorage.setItem('adminSessionStart', Date.now().toString());
                 toast.success('Admin authentication successful');
                 navigate('/admin/dashboard');
             } else {
