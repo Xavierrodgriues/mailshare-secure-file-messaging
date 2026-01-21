@@ -24,6 +24,10 @@ router.post('/logout-device', authenticateAdmin, async (req, res) => {
 
     try {
         await Session.findByIdAndUpdate(sessionId, { isActive: false });
+
+        // Notify clients about the session update
+        req.app.get('io').emit('session_update', { type: 'logout', sessionId });
+
         res.json({ success: true, message: 'Device logged out' });
     } catch (err) {
         console.error('[DEBUG] Logout Device Error:', err);

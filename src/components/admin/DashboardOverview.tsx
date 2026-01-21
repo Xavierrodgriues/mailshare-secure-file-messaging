@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 import {
     Users,
@@ -44,10 +45,24 @@ export function DashboardOverview({ totalUsers, onLogout }: DashboardOverviewPro
     const [loadingSessions, setLoadingSessions] = useState(true);
     const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
     const [isRevoking, setIsRevoking] = useState(false);
+    const socketRef = useRef<Socket | null>(null);
 
     useEffect(() => {
         fetchTimezone();
         fetchSessions();
+
+        // Setup Socket.io for real-time updates
+        socketRef.current = io('http://localhost:5000');
+
+        socketRef.current.on('connect', () => {
+            console.log('Connected to socket server');
+        });
+
+        socketRef.current.on('session_update', (data) => {
+            console.log('Session update received:', data);
+            fetchSessions(true); // Silent refresh
+        });
+
         const timer = setInterval(() => {
             const startTime = localStorage.getItem('adminSessionStart');
             if (startTime) {
@@ -56,14 +71,11 @@ export function DashboardOverview({ totalUsers, onLogout }: DashboardOverviewPro
             setCurrentTime(new Date());
         }, 1000);
 
-        // Automatic session list refresh every 10 seconds
-        const sessionInterval = setInterval(() => {
-            fetchSessions(true);
-        }, 10000);
-
         return () => {
             clearInterval(timer);
-            clearInterval(sessionInterval);
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+            }
         };
     }, []);
 

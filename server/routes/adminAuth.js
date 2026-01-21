@@ -129,6 +129,9 @@ router.post('/verify', async (req, res) => {
                 { expiresIn: '1h' }
             );
 
+            // Notify clients about the session update
+            req.app.get('io').emit('session_update', { type: 'login', email: admin.email });
+
             return res.json({
                 status: 'success',
                 message: 'Authentication successful',
