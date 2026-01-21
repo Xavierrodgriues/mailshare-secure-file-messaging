@@ -46,6 +46,25 @@ export function DashboardOverview({ totalUsers, onLogout, refreshTrigger }: Dash
     const [loadingSessions, setLoadingSessions] = useState(true);
     const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
     const [isRevoking, setIsRevoking] = useState(false);
+    const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+
+    useEffect(() => {
+        const token = localStorage.getItem('adminToken');
+        if (token) {
+            try {
+                // Simple JWT decode to get sessionId
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                const decoded = JSON.parse(jsonPayload);
+                setCurrentSessionId(decoded.sessionId);
+            } catch (e) {
+                console.error('Error decoding token:', e);
+            }
+        }
+    }, []);
 
     useEffect(() => {
         if (refreshTrigger !== undefined) {
@@ -339,7 +358,9 @@ export function DashboardOverview({ totalUsers, onLogout, refreshTrigger }: Dash
                                                 )}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-black text-slate-900">{session.deviceName}</p>
+                                                <p className="text-sm font-black text-slate-900">
+                                                    {session._id === currentSessionId ? "You (Current Session)" : session.deviceName}
+                                                </p>
                                                 <div className="flex items-center gap-2 mt-1">
                                                     <span className="text-[10px] font-mono font-bold text-slate-400 py-0.5 px-1.5 bg-slate-100 rounded-md">ID: {session.fingerprintId?.slice(-8).toUpperCase() || 'LEGACY'}</span>
                                                     <span className="h-1 w-1 rounded-full bg-slate-300" />
@@ -353,13 +374,15 @@ export function DashboardOverview({ totalUsers, onLogout, refreshTrigger }: Dash
                                                 Active
                                             </span>
                                             <span className="text-[9px] text-slate-300 font-bold group-hover:text-slate-400 transition-colors px-1">ID: {session._id.slice(-6).toUpperCase()}</span>
-                                            <button
-                                                onClick={() => setRevokingSessionId(session._id)}
-                                                className="mt-2 p-1.5 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-500 transition-all"
-                                                title="Revoke Access"
-                                            >
-                                                <LogOut className="h-3.5 w-3.5" />
-                                            </button>
+                                            {session._id !== currentSessionId && (
+                                                <button
+                                                    onClick={() => setRevokingSessionId(session._id)}
+                                                    className="mt-2 p-1.5 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-500 transition-all"
+                                                    title="Revoke Access"
+                                                >
+                                                    <LogOut className="h-3.5 w-3.5" />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
