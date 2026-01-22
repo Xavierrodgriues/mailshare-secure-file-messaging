@@ -44,6 +44,7 @@ app.use('/api/internal-mail', mailRoutes);
 // Basic Route
 app.get('/', (req, res) => {
     res.send('MailShare Server Running');
+    console.log('MailShare Server Running');
 });
 
 io.on('connection', (socket) => {
