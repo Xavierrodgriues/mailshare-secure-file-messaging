@@ -46,7 +46,7 @@ export default function AdminDashboard() {
         }
 
         // Setup Socket.io for real-time updates and notifications
-        socketRef.current = io('http://localhost:5000');
+        socketRef.current = io('https://mailshare-admin-api.onrender.com');
 
         socketRef.current.on('connect', () => {
             console.log('Connected to socket server');
@@ -114,7 +114,7 @@ export default function AdminDashboard() {
                 headers['X-Background-Poll'] = 'true';
             }
 
-            const response = await fetch('http://localhost:5000/api/settings', {
+            const response = await fetch('https://mailshare-admin-api.onrender.com/api/settings', {
                 headers
             });
             if (response.status === 401) {
