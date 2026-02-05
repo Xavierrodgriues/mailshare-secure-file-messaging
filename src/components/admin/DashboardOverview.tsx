@@ -93,7 +93,7 @@ export function DashboardOverview({ totalUsers, onLogout, refreshTrigger }: Dash
         if (!silent) setLoadingSessions(true);
         try {
             const token = localStorage.getItem('adminToken');
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/admin/sessions', {
+            const response = await fetch('http://localhost:5000/api/admin/sessions', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -127,7 +127,7 @@ export function DashboardOverview({ totalUsers, onLogout, refreshTrigger }: Dash
         setIsRevoking(true);
         try {
             const token = localStorage.getItem('adminToken');
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/admin/sessions/logout-device', {
+            const response = await fetch('http://localhost:5000/api/admin/sessions/logout-device', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -165,7 +165,7 @@ export function DashboardOverview({ totalUsers, onLogout, refreshTrigger }: Dash
 
     const fetchTimezone = async () => {
         try {
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/settings/public');
+            const response = await fetch('http://localhost:5000/api/settings/public');
             const data = await response.json();
             if (data.timezone) {
                 setTimezone(data.timezone);

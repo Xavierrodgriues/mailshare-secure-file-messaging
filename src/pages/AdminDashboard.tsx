@@ -114,7 +114,7 @@ export default function AdminDashboard() {
                 headers['X-Background-Poll'] = 'true';
             }
 
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/settings', {
+            const response = await fetch('http://localhost:5000/api/settings', {
                 headers
             });
             if (response.status === 401) {

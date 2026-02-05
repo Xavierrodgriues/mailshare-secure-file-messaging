@@ -29,7 +29,9 @@ import {
     Lock,
     Edit,
     MoreVertical,
-    Search
+    Search,
+    Eye,
+    EyeOff
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -75,6 +77,8 @@ export function UserManagement({
         email: '',
         password: '',
     });
+
+    const [showPassword, setShowPassword] = useState(false);
 
     const [editData, setEditData] = useState({
         fullName: '',
@@ -270,13 +274,26 @@ export function UserManagement({
                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                     <Input
                                         id="password"
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
                                         placeholder="••••••••"
-                                        className="pl-10 h-11"
+                                        className="pl-10 pr-10 h-11"
                                         value={formData.password}
                                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                         required
                                     />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute right-0 top-0 h-full w-10 hover:bg-transparent"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                        ) : (
+                                            <Eye className="h-4 w-4 text-muted-foreground" />
+                                        )}
+                                    </Button>
                                 </div>
                             </div>
                         </div>
