@@ -146,6 +146,7 @@ export function UserManagement({
                         <div className="relative w-full md:w-80">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
+                                autoFocus
                                 placeholder="Search users..."
                                 className="pl-9 h-10 bg-background border-muted"
                                 value={searchQuery}
@@ -228,7 +229,6 @@ export function UserManagement({
                                                         }}
                                                         className="gap-2 cursor-pointer"
                                                     >
-                                                        <Edit className="h-4 w-4" />
                                                         <Edit className="h-4 w-4" />
                                                         Edit Profile
                                                     </DropdownMenuItem>
