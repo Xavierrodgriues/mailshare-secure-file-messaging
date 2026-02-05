@@ -46,7 +46,7 @@ export function SystemLogs() {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('adminToken');
-            const response = await fetch('http://localhost:5000/api/admin/logs', {
+            const response = await fetch('https://mailshare-admin-api.onrender.com/api/admin/logs', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
