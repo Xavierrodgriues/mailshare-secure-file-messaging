@@ -43,7 +43,8 @@ const signInSchema = z.object({
 
 export default function Auth() {
   const { user, signUp, signIn, loading: authLoading } = useAuth();
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(true); // Always true since signup is disabled
+  // const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [formData, setFormData] = useState({
@@ -284,6 +285,7 @@ export default function Auth() {
                 </form>
 
                 <div className="mt-6 text-center">
+                  {/* Signup Disabled
                   <button
                     type="button"
                     onClick={() => setIsLogin(!isLogin)}
@@ -293,6 +295,7 @@ export default function Auth() {
                       ? "Don't have an account? Sign up"
                       : 'Already have an account? Sign in'}
                   </button>
+                  */}
                 </div>
               </>
             )}
