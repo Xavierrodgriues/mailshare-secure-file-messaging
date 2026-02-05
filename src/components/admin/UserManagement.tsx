@@ -31,7 +31,9 @@ import {
     MoreVertical,
     Search,
     Eye,
-    EyeOff
+    EyeOff,
+    Power,
+    CheckCircle
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -44,6 +46,7 @@ interface Profile {
     id: string;
     full_name: string;
     email: string;
+    status?: string;
 }
 
 interface UserManagementProps {
@@ -199,9 +202,15 @@ export function UserManagement({
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-center">
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                                Active
-                                            </span>
+                                            {user.status === 'offline' ? (
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200">
+                                                    Offline
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                                    Online
+                                                </span>
+                                            )}
                                         </TableCell>
                                         <TableCell className="text-right pr-6">
                                             <DropdownMenu>
@@ -220,7 +229,15 @@ export function UserManagement({
                                                         className="gap-2 cursor-pointer"
                                                     >
                                                         <Edit className="h-4 w-4" />
+                                                        <Edit className="h-4 w-4" />
                                                         Edit Profile
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onClick={() => onUpdateUser(user.id, { status: user.status === 'offline' ? 'online' : 'offline' })}
+                                                        className="gap-2 cursor-pointer"
+                                                    >
+                                                        {user.status === 'offline' ? <CheckCircle className="h-4 w-4 text-emerald-600" /> : <Power className="h-4 w-4 text-red-600" />}
+                                                        {user.status === 'offline' ? 'Set Online' : 'Set Offline'}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         onClick={() => onDeleteUser(user.id)}

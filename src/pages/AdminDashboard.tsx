@@ -207,9 +207,13 @@ export default function AdminDashboard() {
     const handleUpdateUser = async (userId: string, editData: any) => {
         setActionLoading(true);
         try {
+            const updatePayload: any = {};
+            if (editData.fullName) updatePayload.full_name = editData.fullName;
+            if (editData.status) updatePayload.status = editData.status;
+
             const { error } = await supabase
                 .from('profiles')
-                .update({ full_name: editData.fullName })
+                .update(updatePayload)
                 .eq('id', userId);
 
             if (error) throw error;

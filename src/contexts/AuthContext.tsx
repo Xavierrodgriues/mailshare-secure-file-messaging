@@ -7,6 +7,7 @@ interface Profile {
   full_name: string;
   email: string;
   avatar_url: string | null;
+  status?: string;
 }
 
 interface AuthContextType {
@@ -32,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         if (session?.user) {
           setTimeout(() => {
             fetchProfile(session.user.id);
@@ -69,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, fullName: string) => {
     const redirectUrl = `${window.location.origin}/`;
-    
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -80,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       },
     });
-    
+
     return { error };
   };
 
@@ -89,7 +90,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
     });
-    
+
+    if (!error && supabase.auth.getUser()) {
+      // Check if user is offline/inactive
+      const { data: userData } = await supabase
+        .from('profiles')
+        .select('status')
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      // Explicitly treating as any because 'status' might not be in the generated types yet
+      if ((userData as any)?.status === 'offline') {
+        await supabase.auth.signOut();
+        return { error: new Error("Your account has been deactivated by the administrator.") };
+      }
+    }
+
     return { error };
   };
 
