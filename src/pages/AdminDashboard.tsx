@@ -36,6 +36,10 @@ export default function AdminDashboard() {
     const [domainWhitelistEnabled, setDomainWhitelistEnabled] = useState(true);
     const [notifications, setNotifications] = useState<AdminNotification[]>([]);
     const [sessionRefreshTrigger, setSessionRefreshTrigger] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [searchQuery, setSearchQuery] = useState('');
+    const ITEMS_PER_PAGE = 7;
     const socketRef = useRef<Socket | null>(null);
 
     useEffect(() => {
@@ -87,7 +91,7 @@ export default function AdminDashboard() {
             }
         });
 
-        fetchUsers();
+        // fetchUsers(); // Triggered by useEffect on currentPage change
         fetchSettings();
 
         // Background session validity check
@@ -133,13 +137,28 @@ export default function AdminDashboard() {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('profiles')
-                .select('*')
-                .order('full_name', { ascending: true });
+                .select('*', { count: 'exact' });
+
+            if (searchQuery) {
+                query = query.or(`full_name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`);
+            }
+
+            const from = (currentPage - 1) * ITEMS_PER_PAGE;
+            const to = from + ITEMS_PER_PAGE - 1;
+
+            const { data, error, count } = await query
+                .order('full_name', { ascending: true })
+                .range(from, to);
 
             if (error) throw error;
             setUsers(data || []);
+            if (count) {
+                setTotalPages(Math.ceil(count / ITEMS_PER_PAGE));
+            } else {
+                setTotalPages(1);
+            }
         } catch (error: any) {
             console.error('Fetch error:', error);
             toast.error('Failed to fetch users: ' + error.message);
@@ -147,6 +166,11 @@ export default function AdminDashboard() {
             setLoading(false);
         }
     };
+
+    // Re-fetch when page or search changes
+    useEffect(() => {
+        fetchUsers();
+    }, [currentPage, searchQuery, sessionRefreshTrigger]);
 
     const handleAddUser = async (formData: any) => {
         const email = formData.email.toLowerCase();
@@ -271,6 +295,11 @@ export default function AdminDashboard() {
                         onDeleteUser={handleDeleteUser}
                         fetchUsers={fetchUsers}
                         domainWhitelistEnabled={domainWhitelistEnabled}
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        searchQuery={searchQuery}
+                        onPageChange={setCurrentPage}
+                        onSearchChange={setSearchQuery}
                     />
                 );
             case 'logs':

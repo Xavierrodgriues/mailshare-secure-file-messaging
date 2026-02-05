@@ -65,12 +65,22 @@ export function UserManagement({
     onUpdateUser,
     onDeleteUser,
     fetchUsers,
-    domainWhitelistEnabled
-}: UserManagementProps) {
+    domainWhitelistEnabled,
+    currentPage,
+    totalPages,
+    searchQuery,
+    onPageChange,
+    onSearchChange
+}: UserManagementProps & {
+    currentPage: number;
+    totalPages: number;
+    searchQuery: string;
+    onPageChange: (page: number) => void;
+    onSearchChange: (query: string) => void;
+}) {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<Profile | null>(null);
-    const [searchQuery, setSearchQuery] = useState('');
 
     const [formData, setFormData] = useState({
         fullName: '',
@@ -104,10 +114,12 @@ export function UserManagement({
         setIsEditDialogOpen(false);
     };
 
-    const filteredUsers = users.filter(user =>
-        user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // const filteredUsers = users.filter(user =>
+    //     user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    //     user.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    // );
+    // Use users directly as they are already filtered/paginated by parent
+    const filteredUsers = users;
 
     return (
         <div className="space-y-6">
@@ -134,7 +146,7 @@ export function UserManagement({
                                 placeholder="Search users..."
                                 className="pl-9 h-10 bg-background border-muted"
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e) => onSearchChange(e.target.value)}
                             />
                         </div>
                     </div>
@@ -154,7 +166,7 @@ export function UserManagement({
                             <Button
                                 variant="ghost"
                                 className="mt-2 text-primary hover:text-primary hover:bg-primary/5"
-                                onClick={() => setSearchQuery('')}
+                                onClick={() => onSearchChange('')}
                             >
                                 Clear search
                             </Button>
@@ -224,6 +236,35 @@ export function UserManagement({
                                 ))}
                             </TableBody>
                         </Table>
+                    )}
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between p-4 border-t bg-muted/20">
+                            <div className="text-sm text-muted-foreground">
+                                Page <span className="font-medium text-foreground">{currentPage}</span> of <span className="font-medium text-foreground">{totalPages}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => onPageChange(currentPage - 1)}
+                                    disabled={currentPage === 1 || loading}
+                                    className="h-8 w-24"
+                                >
+                                    Previous
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => onPageChange(currentPage + 1)}
+                                    disabled={currentPage === totalPages || loading}
+                                    className="h-8 w-24"
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        </div>
                     )}
                 </CardContent>
             </Card>
