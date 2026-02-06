@@ -1,14 +1,22 @@
 import { Message, useMarkAsRead, useDeleteMessage } from '@/hooks/useMessages';
-import { useDownloadFile } from '@/hooks/useAttachments';
+import { useDownloadFile, useGetFileUrl } from '@/hooks/useAttachments';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
-import { Download, Trash2, Reply, Paperclip, ArrowLeft } from 'lucide-react';
+import { Download, Trash2, Reply, Paperclip, ArrowLeft, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ComposeDialog } from './ComposeDialog';
-import { formatFileSize } from '@/lib/utils';
+import { formatFileSize, cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 interface MessageDetailProps {
   message: Message;
@@ -20,14 +28,19 @@ export function MessageDetail({ message, onBack }: MessageDetailProps) {
   const markAsRead = useMarkAsRead();
   const deleteMessage = useDeleteMessage();
   const downloadFile = useDownloadFile();
+  const getFileUrl = useGetFileUrl();
   const [replyOpen, setReplyOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewFileName, setPreviewFileName] = useState<string>('');
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   const senderName = message.from_profile?.full_name || 'Unknown';
   const senderEmail = message.from_profile?.email || '';
   const recipientName = message.to_profile?.full_name || 'Unknown';
   const recipientEmail = message.to_profile?.email || '';
   const isSender = message.from_user_id === user?.id;
-  
+
   const initials = senderName
     .split(' ')
     .map((n) => n[0])
@@ -56,10 +69,36 @@ export function MessageDetail({ message, onBack }: MessageDetailProps) {
 
   const handleDownload = async (filePath: string, fileName: string) => {
     try {
-      await downloadFile(filePath, fileName);
-      toast.success('Download started');
+      toast.promise(downloadFile(filePath, fileName), {
+        loading: 'Downloading...',
+        success: 'Download completed',
+        error: 'Failed to download file',
+      });
     } catch (error) {
-      toast.error('Failed to download file');
+      // Error handled by toast promise
+    }
+  };
+
+  const handleAttachmentClick = async (filePath: string, fileName: string, fileType: string | null) => {
+    // Check if it's an image
+    const isImage = fileType?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
+
+    if (isImage) {
+      try {
+        setIsPreviewLoading(true);
+        setPreviewFileName(fileName);
+        setPreviewOpen(true); // Open immediately to show loader if needed
+        const url = await getFileUrl(filePath);
+        setPreviewUrl(url);
+      } catch (error) {
+        toast.error('Failed to load preview');
+        setPreviewOpen(false); // Close if fails
+      } finally {
+        setIsPreviewLoading(false);
+      }
+    } else {
+      // For non-images (PDF, Docs, etc.), handle as download
+      handleDownload(filePath, fileName);
     }
   };
 
@@ -129,10 +168,11 @@ export function MessageDetail({ message, onBack }: MessageDetailProps) {
                 {message.attachments.map((attachment) => (
                   <div
                     key={attachment.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer group"
+                    onClick={() => handleAttachmentClick(attachment.file_path, attachment.file_name, attachment.file_type)}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
                         <Paperclip className="h-5 w-5 text-primary" />
                       </div>
                       <div className="min-w-0">
@@ -145,7 +185,11 @@ export function MessageDetail({ message, onBack }: MessageDetailProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleDownload(attachment.file_path, attachment.file_name)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(attachment.file_path, attachment.file_name);
+                      }}
                     >
                       <Download className="h-4 w-4" />
                     </Button>
@@ -167,6 +211,40 @@ export function MessageDetail({ message, onBack }: MessageDetailProps) {
           subject: message.subject,
         }}
       />
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl w-full h-auto max-h-[90vh] p-0 overflow-hidden flex flex-col bg-transparent border-none shadow-none sm:bg-background sm:border sm:shadow-lg">
+          <VisuallyHidden>
+            <DialogTitle>Attachment Preview</DialogTitle>
+            <DialogDescription>Previewing {previewFileName}</DialogDescription>
+          </VisuallyHidden>
+
+          <DialogHeader className="p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 absolute top-0 left-0 right-0 z-10 flex flex-row items-center justify-between border-b border-border/40 sm:static">
+            <h3 className="text-lg font-semibold truncate flex-1 mr-4">{previewFileName}</h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleDownload(message.attachments?.find(a => a.file_name === previewFileName)?.file_path || '', previewFileName)}
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-auto flex items-center justify-center bg-black/5 min-h-[300px] p-4">
+            {isPreviewLoading ? (
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            ) : previewUrl ? (
+              <img
+                src={previewUrl}
+                alt={previewFileName}
+                className="max-w-full max-h-[80vh] object-contain rounded-md shadow-sm"
+              />
+            ) : (
+              <div className="text-destructive">Failed to load preview</div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

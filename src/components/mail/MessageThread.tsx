@@ -16,7 +16,16 @@ import {
 import { toast } from 'sonner';
 import { ComposeDialog } from './ComposeDialog';
 import { formatFileSize } from '@/lib/utils';
-import { cn } from '@/lib/utils'; // Assuming cn utility is available or use standard className
+import { cn } from '@/lib/utils';
+import { useGetFileUrl } from '@/hooks/useAttachments';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from '@/components/ui/dialog';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 interface MessageThreadProps {
     messageId: string;
@@ -39,8 +48,13 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
     const markMessagesAsRead = useMarkMessagesAsRead();
     const deleteMessage = useDeleteMessage();
     const downloadFile = useDownloadFile();
+    const getFileUrl = useGetFileUrl();
 
     const [replyOpen, setReplyOpen] = useState(false);
+    const [previewOpen, setPreviewOpen] = useState(false);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [previewFileName, setPreviewFileName] = useState<string>('');
+    const [isPreviewLoading, setIsPreviewLoading] = useState(false);
     const [editAsNewMessage, setEditAsNewMessage] = useState<Message | null>(null);
     const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
 
@@ -156,6 +170,28 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
             toast.success('Download started');
         } catch (error) {
             toast.error('Failed to download file');
+        }
+    };
+
+    const handleAttachmentClick = async (filePath: string, fileName: string, fileType: string | null) => {
+        // Check if it's an image
+        const isImage = fileType?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
+
+        if (isImage) {
+            try {
+                setIsPreviewLoading(true);
+                setPreviewFileName(fileName);
+                setPreviewOpen(true);
+                const url = await getFileUrl(filePath);
+                setPreviewUrl(url);
+            } catch (error) {
+                toast.error('Failed to load preview');
+                setPreviewOpen(false);
+            } finally {
+                setIsPreviewLoading(false);
+            }
+        } else {
+            handleDownload(filePath, fileName);
         }
     };
 
@@ -308,14 +344,22 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                                                         variant="outline"
                                                         size="sm"
                                                         className="h-auto py-2 px-3 gap-2 max-w-full"
-                                                        onClick={() => handleDownload(attachment.file_path, attachment.file_name)}
+                                                        onClick={() => handleAttachmentClick(attachment.file_path, attachment.file_name, attachment.file_type)}
                                                     >
                                                         <Paperclip className="h-3.5 w-3.5" />
                                                         <div className="flex flex-col items-start truncate text-xs">
                                                             <span className="truncate max-w-[150px]">{attachment.file_name}</span>
                                                             <span className="text-[10px] text-muted-foreground">{formatFileSize(attachment.file_size)}</span>
                                                         </div>
-                                                        <Download className="h-3.5 w-3.5 ml-1 opacity-50" />
+                                                        <div
+                                                            className="flex items-center justify-center h-5 w-5 rounded-full hover:bg-muted ml-1"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDownload(attachment.file_path, attachment.file_name);
+                                                            }}
+                                                        >
+                                                            <Download className="h-3.5 w-3.5 opacity-50" />
+                                                        </div>
                                                     </Button>
                                                 ))}
                                             </div>
@@ -368,6 +412,40 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                     initialData={forwardMessage}
                 />
             )}
+
+            <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+                <DialogContent className="max-w-4xl w-full h-auto max-h-[90vh] p-0 overflow-hidden flex flex-col bg-transparent border-none shadow-none sm:bg-background sm:border sm:shadow-lg">
+                    <VisuallyHidden>
+                        <DialogTitle>Attachment Preview</DialogTitle>
+                        <DialogDescription>Previewing {previewFileName}</DialogDescription>
+                    </VisuallyHidden>
+
+                    <DialogHeader className="p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 absolute top-0 left-0 right-0 z-10 flex flex-row items-center justify-between border-b border-border/40 sm:static">
+                        <h3 className="text-lg font-semibold truncate flex-1 mr-4">{previewFileName}</h3>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDownload(previewUrl || '', previewFileName)} // Simplified download trigger from preview
+                        >
+                            <Download className="h-4 w-4" />
+                        </Button>
+                    </DialogHeader>
+
+                    <div className="flex-1 overflow-auto flex items-center justify-center bg-black/5 min-h-[300px] p-4">
+                        {isPreviewLoading ? (
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        ) : previewUrl ? (
+                            <img
+                                src={previewUrl}
+                                alt={previewFileName}
+                                className="max-w-full max-h-[80vh] object-contain rounded-md shadow-sm"
+                            />
+                        ) : (
+                            <div className="text-destructive">Failed to load preview</div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

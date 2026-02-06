@@ -54,8 +54,9 @@ export function useSharedFiles() {
 }
 
 // 🔽 UPDATED: use supabase.functions.invoke so JWT is automatically attached
-export function useDownloadFile() {
-  return async (filePath: string, fileName: string) => {
+// 🔽 UPDATED: Helper to get signed URL
+export function useGetFileUrl() {
+  return async (filePath: string) => {
     const { data, error } = await supabase.functions.invoke<{
       url: string;
     }>('r2-download', {
@@ -67,12 +68,34 @@ export function useDownloadFile() {
       throw error;
     }
 
-    // data.url is the signed download URL from the edge function
-    const a = document.createElement('a');
-    a.href = data.url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    return data.url;
+  };
+}
+
+// 🔽 UPDATED: Downloads file by opening in new tab (bypassing CORS fetch issues)
+export function useDownloadFile() {
+  const getFileUrl = useGetFileUrl();
+
+  return async (filePath: string, fileName: string) => {
+    try {
+      const url = await getFileUrl(filePath);
+
+      // Create a temporary link to attempt download
+      // If it's same-origin, it will download.
+      // If it's cross-origin (R2), 'download' attribute is ignored -> we target _blank
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.target = '_blank'; // Force new tab for cross-origin compliance
+      a.rel = 'noopener noreferrer';
+
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+    } catch (error) {
+      console.error('Download error:', error);
+      throw error;
+    }
   };
 }
