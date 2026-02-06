@@ -226,6 +226,31 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
     onOpenChange(false);
   };
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const files: File[] = [];
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          if (file.size > MAX_FILE_SIZE) {
+            toast.error(`File "${file.name}" exceeds 25MB limit`);
+            continue;
+          }
+          files.push(file);
+        }
+      }
+    }
+
+    if (files.length > 0) {
+      e.preventDefault();
+      setAttachments((prev) => [...prev, ...files]);
+      toast.success(`Pasted ${files.length} image(s) as attachment`);
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
 
@@ -471,6 +496,7 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
               value={body}
               name='body'
               onChange={(e) => setBody(e.target.value)}
+              onPaste={handlePaste}
             />
           </div>
 
