@@ -297,6 +297,11 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
       return;
     }
 
+    if (!subject.trim()) {
+      toast.error('Subject is required');
+      return;
+    }
+
     try {
       await sendMessage.mutateAsync({
         toUserIds: selectedUsers.map((u) => u.id),
