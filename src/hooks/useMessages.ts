@@ -2,6 +2,11 @@ import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tansta
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
+export interface Recipient {
+  name: string;
+  email: string;
+}
+
 export interface Message {
   id: string;
   from_user_id: string;
@@ -12,6 +17,7 @@ export interface Message {
   is_deleted_sender: boolean;
   is_deleted_receiver: boolean;
   created_at: string;
+  recipients?: Recipient[];
   from_profile?: {
     full_name: string;
     email: string;
@@ -149,12 +155,14 @@ export function useSendMessage() {
   return useMutation({
     mutationFn: async ({
       toUserIds,
+      toUserProfiles,
       subject,
       body,
       attachments,
       existingAttachments,
     }: {
       toUserIds: string[];
+      toUserProfiles: { id: string; name: string; email: string }[];
       subject: string;
       body: string;
       attachments?: File[];
@@ -172,6 +180,12 @@ export function useSendMessage() {
       const messages = [];
 
       for (const toUserId of toUserIds) {
+        // Build recipients array for all recipients
+        const recipientsData = toUserProfiles.map(p => ({
+          name: p.name,
+          email: p.email,
+        }));
+
         // 1) Create message
         const { data: message, error: messageError } = await supabase
           .from('messages')
@@ -180,6 +194,7 @@ export function useSendMessage() {
             to_user_id: toUserId,
             subject,
             body,
+            recipients: recipientsData,
           })
           .select()
           .single();

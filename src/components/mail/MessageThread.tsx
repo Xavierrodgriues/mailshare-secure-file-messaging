@@ -301,6 +301,19 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                                                 <span className="text-xs text-muted-foreground">&lt;{msg.from_profile?.email}&gt;</span>
                                             </div>
                                             <div className="text-xs text-muted-foreground">
+                                                to{' '}
+                                                {msg.recipients && msg.recipients.length > 0
+                                                    ? msg.recipients.map((r, idx) => (
+                                                        <span key={idx}>
+                                                            {r.name} &lt;{r.email}&gt;
+                                                            {idx < msg.recipients!.length - 1 && ', '}
+                                                        </span>
+                                                    ))
+                                                    : msg.to_profile
+                                                        ? `${msg.to_profile.full_name} <${msg.to_profile.email}>`
+                                                        : 'Unknown'}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
                                                 {format(new Date(msg.created_at), 'PPP p')}
                                             </div>
                                         </div>
@@ -315,10 +328,6 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                                                     <DropdownMenuItem onClick={() => setEditAsNewMessage(msg)}>
                                                         <Pencil className="h-4 w-4 mr-2" />
                                                         Edit as New
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => setForwardMessage(msg)}>
-                                                        <Forward className="h-4 w-4 mr-2" />
-                                                        Forward
                                                     </DropdownMenuItem>
                                                     {/* <DropdownMenuItem onClick={() => handleDelete(msg)} className="text-destructive focus:text-destructive">
                                                         <Trash2 className="h-4 w-4 mr-2" />
@@ -365,6 +374,19 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* Forward Button */}
+                                    <div className="pt-3 mt-3 border-t border-border/50">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setForwardMessage(msg)}
+                                            className="gap-2 text-muted-foreground hover:text-foreground"
+                                        >
+                                            <Forward className="h-4 w-4" />
+                                            Forward
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         );

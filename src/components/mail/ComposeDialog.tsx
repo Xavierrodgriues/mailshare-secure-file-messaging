@@ -305,6 +305,11 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
     try {
       await sendMessage.mutateAsync({
         toUserIds: selectedUsers.map((u) => u.id),
+        toUserProfiles: selectedUsers.map((u) => ({
+          id: u.id,
+          name: u.full_name,
+          email: u.email,
+        })),
         subject,
         body,
         attachments: attachments.length > 0 ? attachments : undefined,

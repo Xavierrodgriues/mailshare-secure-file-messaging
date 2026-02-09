@@ -142,7 +142,15 @@ export function MessageDetail({ message, onBack }: MessageDetailProps) {
                 <span className="text-sm text-muted-foreground">&lt;{senderEmail}&gt;</span>
               </div>
               <div className="text-sm text-muted-foreground">
-                to {recipientName} &lt;{recipientEmail}&gt;
+                to{' '}
+                {message.recipients && message.recipients.length > 0
+                  ? message.recipients.map((r, index) => (
+                    <span key={index}>
+                      {r.name} &lt;{r.email}&gt;
+                      {index < message.recipients!.length - 1 && ', '}
+                    </span>
+                  ))
+                  : `${recipientName} <${recipientEmail}>`}
               </div>
               <div className="text-xs text-muted-foreground mt-1">
                 {format(new Date(message.created_at), 'PPpp')}
