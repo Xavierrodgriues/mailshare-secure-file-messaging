@@ -28,7 +28,7 @@ import { useProfiles, Profile } from '@/hooks/useProfiles';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useSendMessage, Message, Attachment } from '@/hooks/useMessages';
 import { toast } from 'sonner';
-import { Send, Paperclip, X, Loader2, Check, ChevronsUpDown } from 'lucide-react';
+import { Send, Paperclip, X, Loader2, Check, ChevronsUpDown, UserPlus } from 'lucide-react';
 import { cn, formatFileSize } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -61,6 +61,7 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId, mode = 'co
   const [isLoadingAllUsers, setIsLoadingAllUsers] = useState(false);
   const [totalUserCount, setTotalUserCount] = useState<number>(0);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const [showRecipientActions, setShowRecipientActions] = useState(false);
 
   const { data: profiles = [], isLoading: isSearching } = useProfiles(
     debouncedSearchTerm,
@@ -433,44 +434,59 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
         <div className="p-4 space-y-4 overflow-y-auto flex-1">
           {/* To Field */}
           <div className="space-y-2">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center h-8">
               <Label>To</Label>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={selectedUsers.length === totalUserCount && totalUserCount > 0 ? handleRemoveAllUsers : handleSelectAllUsers}
-                disabled={isLoadingAllUsers}
-                className="h-6 px-2 text-xs text-muted-foreground"
-              >
-                {isLoadingAllUsers ? (
-                  <>
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    Processing...
-                  </>
-                ) : selectedUsers.length === totalUserCount && totalUserCount > 0 ? (
-                  "Remove All Users"
-                ) : (
-                  "Select All Users"
+              <div className="flex items-center gap-1">
+                {showRecipientActions && (
+                  <div className="flex items-center gap-1 mr-1 animate-in fade-in slide-in-from-right-4 duration-300">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={selectedUsers.length === totalUserCount && totalUserCount > 0 ? handleRemoveAllUsers : handleSelectAllUsers}
+                      disabled={isLoadingAllUsers}
+                      className="h-7 px-3 text-xs"
+                    >
+                      {isLoadingAllUsers ? (
+                        <>
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          Processing...
+                        </>
+                      ) : selectedUsers.length === totalUserCount && totalUserCount > 0 ? (
+                        "Remove All"
+                      ) : (
+                        "Select All"
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleKickoffUsers}
+                      disabled={isLoadingKickoffUsers}
+                      className="h-7 px-3 text-xs"
+                    >
+                      {isLoadingKickoffUsers ? (
+                        <>
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          Processing...
+                        </>
+                      ) : areAllKickoffUsersSelected ? (
+                        "Remove Kickoff"
+                      ) : (
+                        "Kickoff"
+                      )}
+                    </Button>
+                  </div>
                 )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleKickoffUsers}
-                disabled={isLoadingKickoffUsers}
-                className="h-6 px-2 text-xs text-muted-foreground ml-2"
-              >
-                {isLoadingKickoffUsers ? (
-                  <>
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    Processing...
-                  </>
-                ) : areAllKickoffUsersSelected ? (
-                  "Remove Kickoff"
-                ) : (
-                  "Kickoff"
-                )}
-              </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn("h-7 w-7 rounded-full transition-colors", showRecipientActions && "bg-muted text-foreground")}
+                  onClick={() => setShowRecipientActions(!showRecipientActions)}
+                  title={showRecipientActions ? "Hide options" : "Show bulk actions"}
+                >
+                  <UserPlus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             <Popover open={searchOpen} onOpenChange={setSearchOpen}>
               <PopoverTrigger asChild>
