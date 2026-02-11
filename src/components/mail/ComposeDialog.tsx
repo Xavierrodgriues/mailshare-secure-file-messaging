@@ -372,7 +372,17 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
 
   const [isLoadingKickoffUsers, setIsLoadingKickoffUsers] = useState(false);
 
+  const areAllKickoffUsersSelected = KICKOFF_EMAILS.every(email =>
+    selectedUsers.some(u => u.email?.toLowerCase() === email.toLowerCase())
+  );
+
   const handleKickoffUsers = async () => {
+    if (areAllKickoffUsersSelected) {
+      setSelectedUsers(prev => prev.filter(u => !KICKOFF_EMAILS.some(e => e.toLowerCase() === (u.email?.toLowerCase() || ''))));
+      toast.success('Removed Kickoff members');
+      return;
+    }
+
     try {
       setIsLoadingKickoffUsers(true);
       const { data: { user } } = await supabase.auth.getUser();
@@ -392,12 +402,6 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
       if (error) throw error;
 
       if (kickoffProfiles && kickoffProfiles.length > 0) {
-        // We want to add them to existing selection or replace? 
-        // Usually "Kickoff" implies a specific group. Let's add them, avoiding duplicates.
-        // Or just set them. User said "tagg this emails", implying these should be the recipients.
-        // Let's add them to the current selection to be safe/flexible (so user can add others too), 
-        // but ensure no duplicates.
-
         setSelectedUsers(prev => {
           const existingIds = new Set(prev.map(p => p.id));
           const newProfiles = kickoffProfiles.filter(p => !existingIds.has(p.id));
@@ -461,6 +465,8 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
                     <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                     Processing...
                   </>
+                ) : areAllKickoffUsersSelected ? (
+                  "Remove Kickoff"
                 ) : (
                   "Kickoff"
                 )}
