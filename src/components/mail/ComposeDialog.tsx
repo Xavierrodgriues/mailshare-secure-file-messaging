@@ -361,6 +361,61 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
     toast.success('Removed all recipients');
   };
 
+  const KICKOFF_EMAILS = [
+    'sandipjayswal@yuviiconsultancy.com',
+    'nilesh@yuviiconsultancy.com',
+    'raj@yuviiconsultancy.com',
+    'niraj@yuviiconsultancy.com',
+    'darshan@yuviiconsultancy.com',
+    'dhruvgor@yuviiconsultancy.com'
+  ];
+
+  const [isLoadingKickoffUsers, setIsLoadingKickoffUsers] = useState(false);
+
+  const handleKickoffUsers = async () => {
+    try {
+      setIsLoadingKickoffUsers(true);
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        toast.error('You must be logged in');
+        return;
+      }
+
+      // Fetch profiles matching the emails
+      const { data: kickoffProfiles, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('email', KICKOFF_EMAILS)
+        .neq('id', user.id);
+
+      if (error) throw error;
+
+      if (kickoffProfiles && kickoffProfiles.length > 0) {
+        // We want to add them to existing selection or replace? 
+        // Usually "Kickoff" implies a specific group. Let's add them, avoiding duplicates.
+        // Or just set them. User said "tagg this emails", implying these should be the recipients.
+        // Let's add them to the current selection to be safe/flexible (so user can add others too), 
+        // but ensure no duplicates.
+
+        setSelectedUsers(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const newProfiles = kickoffProfiles.filter(p => !existingIds.has(p.id));
+          return [...prev, ...newProfiles];
+        });
+
+        toast.success(`Added ${kickoffProfiles.length} Kickoff members`);
+      } else {
+        toast.info('No Kickoff members found');
+      }
+    } catch (error) {
+      console.error('Error selecting kickoff users:', error);
+      toast.error('Failed to select kickoff users');
+    } finally {
+      setIsLoadingKickoffUsers(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full h-full max-w-none rounded-none border-0 sm:w-[95vw] sm:max-w-[640px] sm:h-auto sm:max-h-[90vh] sm:rounded-lg sm:border flex flex-col p-0 gap-0">
@@ -392,6 +447,22 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} <${initialData.to_profile?
                   "Remove All Users"
                 ) : (
                   "Select All Users"
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleKickoffUsers}
+                disabled={isLoadingKickoffUsers}
+                className="h-6 px-2 text-xs text-muted-foreground ml-2"
+              >
+                {isLoadingKickoffUsers ? (
+                  <>
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  "Kickoff"
                 )}
               </Button>
             </div>
