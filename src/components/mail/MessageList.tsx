@@ -104,7 +104,7 @@ export function MessageList({ messages, selectedId, onSelect, showSender = true 
                   {message.subject || '(No subject)'}
                 </p>
                 <p className="text-xs text-muted-foreground truncate mt-0.5">
-                  {message.body?.slice(0, 100) || '(No content)'}
+                  {message.body?.replace(/<[^>]*>?/gm, '').slice(0, 100) || '(No content)'}
                 </p>
               </div>
             </div>

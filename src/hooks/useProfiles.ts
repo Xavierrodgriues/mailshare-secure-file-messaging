@@ -7,6 +7,7 @@ export interface Profile {
   full_name: string;
   email: string;
   avatar_url: string | null;
+  signature?: string | null;
 }
 
 export function useProfiles(searchTerm?: string, excludedIds: string[] = []) {

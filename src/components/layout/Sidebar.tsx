@@ -11,7 +11,8 @@ import {
   Plus,
   Mail,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Settings
 } from 'lucide-react';
 
 
@@ -24,6 +25,7 @@ const navItems = [
 
 const fileItems = [
   { path: '/shared-files', label: 'Shared Files', icon: FolderOpen },
+  { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export function SidebarContent({

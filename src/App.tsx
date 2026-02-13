@@ -14,6 +14,7 @@ import Sent from "./pages/Sent";
 import Drafts from "./pages/Drafts";
 import Trash from "./pages/Trash";
 import SharedFiles from "./pages/SharedFiles";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const AppContent = () => {
         <Route path="/drafts" element={<Drafts />} />
         <Route path="/trash" element={<Trash />} />
         <Route path="/shared-files" element={<SharedFiles />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

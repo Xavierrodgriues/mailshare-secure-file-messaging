@@ -3,6 +3,7 @@ import { useEffect, useState, useRef, useLayoutEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useConversationInfinite, useMarkMessagesAsRead, useDeleteMessage, Message } from '@/hooks/useMessages';
 import { useDownloadFile } from '@/hooks/useAttachments';
+import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
@@ -339,9 +340,10 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                                     </div>
 
                                     {/* Body */}
-                                    <div className="prose prose-sm max-w-none whitespace-pre-wrap text-foreground mb-4">
-                                        {msg.body || '(No content)'}
-                                    </div>
+                                    <div
+                                        className="prose prose-sm max-w-none text-foreground mb-4 [&_img]:max-w-full [&_img]:h-auto"
+                                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.body || '(No content)') }}
+                                    />
 
                                     {/* Attachments */}
                                     {msg.attachments && msg.attachments.length > 0 && (

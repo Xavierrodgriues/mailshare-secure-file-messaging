@@ -1,5 +1,6 @@
 import { Message, useMarkAsRead, useDeleteMessage } from '@/hooks/useMessages';
 import { useDownloadFile, useGetFileUrl } from '@/hooks/useAttachments';
+import DOMPurify from 'dompurify';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -159,9 +160,11 @@ export function MessageDetail({ message, onBack }: MessageDetailProps) {
           </div>
 
           {/* Body */}
-          <div className="prose prose-sm max-w-none whitespace-pre-wrap text-foreground">
-            {message.body || '(No content)'}
-          </div>
+          {/* Body */}
+          <div
+            className="prose prose-sm max-w-none text-foreground [&_img]:max-w-full [&_img]:h-auto"
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(message.body || '(No content)') }}
+          />
 
           {/* Attachments */}
           {message.attachments && message.attachments.length > 0 && (
