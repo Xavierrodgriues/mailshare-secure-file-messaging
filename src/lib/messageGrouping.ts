@@ -1,9 +1,9 @@
-import { Message } from "@/hooks/useMessages";
+import { Message, Recipient } from "@/hooks/useMessages";
 import { Profile } from "@/hooks/useProfiles";
 
 export interface GroupedMessage extends Message {
     isGrouped?: boolean;
-    recipients?: Profile[]; // List of all recipients for this group
+    recipients?: Recipient[]; // List of all recipients for this group
     recipientCount?: number;
     messageIds?: string[]; // IDs of all messages in this group
 }
@@ -31,7 +31,10 @@ export function groupSentMessages(messages: Message[]): GroupedMessage[] {
         const group: GroupedMessage = {
             ...current,
             isGrouped: true,
-            recipients: current.to_profile ? [current.to_profile as Profile] : [],
+            recipients: current.to_profile ? [{
+                name: current.to_profile.full_name,
+                email: current.to_profile.email
+            }] : [],
             recipientCount: 1,
             messageIds: [current.id],
         };
@@ -62,7 +65,10 @@ export function groupSentMessages(messages: Message[]): GroupedMessage[] {
             ) {
                 // Add to group
                 if (candidate.to_profile) {
-                    group.recipients?.push(candidate.to_profile as Profile);
+                    group.recipients?.push({
+                        name: candidate.to_profile.full_name,
+                        email: candidate.to_profile.email
+                    });
                 }
                 group.recipientCount = (group.recipientCount || 0) + 1;
                 group.messageIds?.push(candidate.id);

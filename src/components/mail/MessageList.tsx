@@ -32,12 +32,12 @@ export function MessageList({ messages, selectedId, onSelect, showSender = true 
 
     // It's a Sent message, show recipients
     if (msg.isGrouped && msg.recipients && msg.recipients.length > 1) {
-      const names = msg.recipients.map(r => r.full_name.split(' ')[0]); // First names only for compactness? Gmail uses full names usually but truncates.
+      const names = msg.recipients.map(r => r.name.split(' ')[0]); // First names only for compactness? Gmail uses full names usually but truncates.
       // Requirements: "Use recipient full names" but also "Mobile: Name +N".
       // Let's use first names for comma list to fit more, or full names if few.
       // Requirement 2: "To: Pravin, Jennifer"
 
-      const firstNames = msg.recipients.map(r => r.full_name);
+      const firstNames = msg.recipients.map(r => r.name);
 
       if (firstNames.length === 2) {
         return `To: ${firstNames.join(', ')}`;
@@ -56,7 +56,7 @@ export function MessageList({ messages, selectedId, onSelect, showSender = true 
         const displayName = getRecipientDisplay(groupedMsg);
 
         // Tooltip content: All full names
-        const tooltipText = groupedMsg.recipients?.map(r => r.full_name).join(', ') || displayName;
+        const tooltipText = groupedMsg.recipients?.map(r => r.name).join(', ') || displayName;
 
         const isSelected = selectedId === message.id;
         const hasAttachments = (message.attachments?.length ?? 0) > 0;
