@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ComposeDialog } from '@/components/mail/ComposeDialog';
 import { useState } from 'react';
 import { format } from 'date-fns';
+import striptags from 'striptags';
 
 export default function DraftsPage() {
   const { drafts, deleteDraft } = useDrafts();
@@ -66,7 +67,7 @@ export default function DraftsPage() {
                       {draft.subject || '(No Subject)'}
                     </div>
                     <div className="text-sm text-muted-foreground truncate">
-                      {draft.body || '(No Content)'}
+                      {striptags(draft.body || '').slice(0, 100) || '(No Content)'}
                     </div>
                   </div>
                   <Button
