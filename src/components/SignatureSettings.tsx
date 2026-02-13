@@ -29,6 +29,8 @@ export function SignatureSettings() {
                 if (error) throw error;
                 if (data && data.signature) {
                     setSignature(data.signature);
+                } else {
+                    setSignature(DEFAULT_SIGNATURE);
                 }
             } catch (error) {
                 console.error('Error fetching signature:', error);
@@ -77,6 +79,23 @@ export function SignatureSettings() {
         'link', 'image'
     ];
 
+    const DEFAULT_SIGNATURE = `
+<p>--</p>
+<p>Regards,</p>
+<p><img src="/signature.png" alt="Logo" width="100"></p>
+<br>
+<p><strong>Your Name || Your Role</strong></p>
+<p><strong>a:</strong> Yuvii Consultancy LLC |133 Centennial Ridge DR, Acworth GA,30102  | United States</p>
+<p><strong>e:</strong> your_email@yuviiconsultancy.com | <strong>w:</strong> <a href="http://www.yuviiconsultancy.com" target="_blank" rel="noopener noreferrer">www.yuviiconsultancy.com</a></p>
+<p><strong>M:</strong> Phone Number</p>
+`;
+
+    const handleLoadDefault = () => {
+        if (window.confirm('This will replace your current signature. Continue?')) {
+            setSignature(DEFAULT_SIGNATURE);
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center p-8">
@@ -117,7 +136,10 @@ export function SignatureSettings() {
                             </div>
                         </div>
 
-                        <div className="flex justify-end pt-4">
+                        <div className="flex justify-between pt-4">
+                            <Button variant="outline" onClick={handleLoadDefault}>
+                                Load Default Template
+                            </Button>
                             <Button onClick={handleSave} disabled={isSaving}>
                                 {isSaving ? (
                                     <>
