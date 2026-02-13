@@ -3,7 +3,8 @@ import {
     FileText,
     Settings,
     LayoutDashboard,
-    ShieldCheck
+    ShieldCheck,
+    Megaphone
 } from "lucide-react";
 import {
     Sidebar,
@@ -33,6 +34,11 @@ const menuItems = [
         title: "System Logs",
         url: "logs",
         icon: FileText,
+    },
+    {
+        title: "Broadcasting",
+        url: "broadcasting",
+        icon: Megaphone,
     },
     {
         title: "Settings",

@@ -9,6 +9,7 @@ import { DashboardOverview } from '@/components/admin/DashboardOverview';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { SystemLogs } from '@/components/admin/SystemLogs';
 import { Settings } from '@/components/admin/Settings';
+import { Broadcasting } from '@/components/admin/Broadcasting';
 import { io, Socket } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -264,6 +265,7 @@ export default function AdminDashboard() {
         switch (currentView) {
             case 'overview': return 'Dashboard Overview';
             case 'users': return 'User Management';
+            case 'broadcasting': return 'Broadcasting Center';
             case 'logs': return 'System Activity Logs';
             case 'settings': return 'Platform Settings';
             default: return 'Admin Dashboard';
@@ -306,6 +308,8 @@ export default function AdminDashboard() {
                         onSearchChange={setSearchQuery}
                     />
                 );
+            case 'broadcasting':
+                return <Broadcasting />;
             case 'logs':
                 return <SystemLogs />;
             case 'settings':

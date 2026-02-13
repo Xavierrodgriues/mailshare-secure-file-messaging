@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SearchProvider } from "@/contexts/SearchContext";
 import { FullScreenLoader } from "@/components/ui/FullScreenLoader";
+import { GlobalBroadcastListener } from "@/components/GlobalBroadcastListener";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AdminLogin from "./pages/AdminLogin";
@@ -13,6 +14,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Sent from "./pages/Sent";
 import Drafts from "./pages/Drafts";
 import Trash from "./pages/Trash";
+import Notifications from "./pages/Notifications";
 import SharedFiles from "./pages/SharedFiles";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -42,6 +44,7 @@ const AppContent = () => {
         <Route path="/drafts" element={<Drafts />} />
         <Route path="/trash" element={<Trash />} />
         <Route path="/shared-files" element={<SharedFiles />} />
+        <Route path="/notifications" element={<Notifications />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
@@ -57,6 +60,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <AppContent />
+          <GlobalBroadcastListener />
         </TooltipProvider>
       </SearchProvider>
     </AuthProvider>
