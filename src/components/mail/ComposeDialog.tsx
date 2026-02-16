@@ -71,7 +71,7 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId, mode = 'co
   );
 
   const sendMessage = useSendMessage();
-  const { saveDraftAsync, deleteDraft, getDraft } = useDrafts();
+  const { saveDraftAsync, deleteDraft, getDraft, drafts } = useDrafts();
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
 
   // Fetch signature
@@ -144,7 +144,7 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId, mode = 'co
         setHasSignatureAppended(true); // Don't double append
       }
     }
-  }, [draftId, open]);
+  }, [draftId, open, drafts]);
 
   // Handle Reply setup
   useEffect(() => {
