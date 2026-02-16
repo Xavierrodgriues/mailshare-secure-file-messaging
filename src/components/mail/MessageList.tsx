@@ -66,9 +66,12 @@ export function MessageList({ messages, selectedId, onSelect, showSender = true 
             key={message.id}
             onClick={() => onSelect(message)}
             className={cn(
-              "w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors",
-              isSelected && "bg-primary/5 border-l-2 border-l-primary",
-              !message.is_read && "bg-muted/30"
+              "w-full text-left px-4 py-3 border-l-4 transition-all hover:bg-muted/50",
+              isSelected
+                ? "bg-primary/5 border-l-primary"
+                : !message.is_read
+                  ? "bg-muted/30 border-l-primary"
+                  : "border-l-transparent"
             )}
           >
             <div className="flex items-start gap-3">
@@ -79,7 +82,7 @@ export function MessageList({ messages, selectedId, onSelect, showSender = true 
                       <TooltipTrigger asChild>
                         <span className={cn(
                           "text-sm truncate max-w-[200px] block", // explicit block/truncate for tooltip trigger
-                          !message.is_read && "font-semibold"
+                          !message.is_read ? "font-bold text-foreground" : "font-medium text-muted-foreground"
                         )}>
                           {displayName}
                         </span>
@@ -93,17 +96,23 @@ export function MessageList({ messages, selectedId, onSelect, showSender = true 
                   {hasAttachments && (
                     <Paperclip className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                   )}
-                  <span className="text-xs text-muted-foreground ml-auto flex-shrink-0">
+                  <span className={cn(
+                    "text-xs ml-auto flex-shrink-0",
+                    !message.is_read ? "text-primary font-medium" : "text-muted-foreground"
+                  )}>
                     {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
                   </span>
                 </div>
                 <p className={cn(
                   "text-sm truncate",
-                  !message.is_read ? "font-medium" : "text-muted-foreground"
+                  !message.is_read ? "font-semibold text-foreground" : "text-muted-foreground"
                 )}>
                   {message.subject || '(No subject)'}
                 </p>
-                <p className="text-xs text-muted-foreground truncate mt-0.5">
+                <p className={cn(
+                  "text-xs truncate mt-0.5",
+                  !message.is_read ? "text-muted-foreground font-medium" : "text-muted-foreground/70"
+                )}>
                   {message.body?.replace(/<[^>]*>?/gm, '').slice(0, 100) || '(No content)'}
                 </p>
               </div>

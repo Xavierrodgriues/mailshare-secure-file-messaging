@@ -15,6 +15,8 @@ import {
   Settings,
   Bell
 } from 'lucide-react';
+import { useUnreadCount } from '@/hooks/useUnreadCount';
+import { useBroadcasts } from '@/hooks/useBroadcasts';
 
 
 const navItems = [
@@ -44,6 +46,9 @@ export function SidebarContent({
   onComposeClick?: () => void;
 }) {
   const location = useLocation();
+  const { data: unreadCount = 0 } = useUnreadCount();
+  const { broadcasts } = useBroadcasts();
+  const notificationCount = broadcasts.length;
 
   return (
     <>
@@ -80,14 +85,47 @@ export function SidebarContent({
         <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
+            const isInbox = item.label === 'Inbox';
+            const isNotifications = item.label === 'Notifications';
+            const showInboxBadge = isInbox && unreadCount > 0;
+            const showNotificationBadge = isNotifications && notificationCount > 0;
+
+            // Determine which count to show
+            let countToShow = 0;
+            let showBadge = false;
+
+            if (showInboxBadge) {
+              countToShow = unreadCount;
+              showBadge = true;
+            } else if (showNotificationBadge) {
+              countToShow = notificationCount;
+              showBadge = true;
+            }
+
             return (
               <NavLink key={item.path} to={item.path} onClick={() => isMobile && onCloseMobile?.()}>
                 <Button
                   variant={isActive ? 'sidebar-active' : 'sidebar'}
-                  className={cn(collapsed && !isMobile && "justify-center px-0")}
+                  className={cn(
+                    "relative", // Added for positioning context if needed, though flex works
+                    collapsed && !isMobile && "justify-center px-0"
+                  )}
                 >
                   <item.icon className="h-5 w-5 flex-shrink-0" />
-                  {(!collapsed || isMobile) && <span>{item.label}</span>}
+                  {(!collapsed || isMobile) && (
+                    <div className="flex flex-1 items-center justify-between w-full">
+                      <span>{item.label}</span>
+                      {showBadge && (
+                        <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-semibold text-white bg-primary rounded-full">
+                          {countToShow > 99 ? '99+' : countToShow}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {/* Show a small dot when collapsed if unread items exist */}
+                  {(collapsed && !isMobile && showBadge) && (
+                    <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-primary rounded-full border-2 border-background" />
+                  )}
                 </Button>
               </NavLink>
             );

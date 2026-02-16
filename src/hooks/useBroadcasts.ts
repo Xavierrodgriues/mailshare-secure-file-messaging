@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface Broadcast {
     id: string;
@@ -13,70 +14,65 @@ export interface Broadcast {
 const DISMISSED_KEY = 'mailshare_dismissed_broadcasts';
 
 export function useBroadcasts() {
-    const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { user } = useAuth();
+    const queryClient = useQueryClient();
 
-    useEffect(() => {
-        fetchBroadcasts();
-
-        // Optional: Real-time subscription could be added here
-        const channel = supabase
-            .channel('public:broadcasts')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcasts' }, (payload) => {
-                const newBroadcast = payload.new as Broadcast;
-                setBroadcasts(prev => [newBroadcast, ...prev]);
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, []);
-
-    const fetchBroadcasts = async () => {
-        setIsLoading(true);
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
+    // Query for server data
+    const { data: allBroadcasts = [], isLoading: isLoadingBroadcasts } = useQuery({
+        queryKey: ['broadcasts'],
+        queryFn: async () => {
             const { data, error } = await supabase
                 .from('broadcasts')
                 .select('*')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
+            return data as Broadcast[];
+        },
+        staleTime: 1000 * 60 * 5, // 5 minutes
+    });
 
-            let dismissedIds: string[] = [];
-            if (user) {
-                const stored = localStorage.getItem(`${DISMISSED_KEY}_${user.id}`);
-                if (stored) {
-                    dismissedIds = JSON.parse(stored);
-                }
+    // Query for local dismissed state
+    const { data: dismissedIds = [] } = useQuery({
+        queryKey: ['dismissed_broadcasts', user?.id],
+        queryFn: () => {
+            if (!user) return [];
+            const stored = localStorage.getItem(`${DISMISSED_KEY}_${user.id}`);
+            return stored ? JSON.parse(stored) as string[] : [];
+        },
+        enabled: !!user,
+        staleTime: Infinity, // Rely on invalidation
+    });
+
+    // Mutation to dismiss
+    const { mutate: dismissBroadcast } = useMutation({
+        mutationFn: async (id: string) => {
+            if (!user) return;
+            const key = `${DISMISSED_KEY}_${user.id}`;
+            const current = dismissedIds;
+            if (!current.includes(id)) {
+                const updated = [...current, id];
+                localStorage.setItem(key, JSON.stringify(updated));
+                return updated;
             }
+            return current;
+        },
+        onSuccess: (updatedIds) => {
+            if (updatedIds) {
+                queryClient.setQueryData(['dismissed_broadcasts', user?.id], updatedIds);
+                toast.success('Notification dismissed');
+            }
+        },
+    });
 
-            const visibleBroadcasts = (data || []).filter(b => !dismissedIds.includes(b.id));
-            setBroadcasts(visibleBroadcasts);
-        } catch (error) {
-            console.error('Error fetching broadcasts:', error);
-            // toast.error('Failed to load notifications'); // Suppress to avoid annoyance on load if empty
-        } finally {
-            setIsLoading(false);
-        }
+    // Filter logic
+    const broadcasts = allBroadcasts.filter(b => !dismissedIds.includes(b.id));
+
+    return {
+        broadcasts,
+        isLoading: isLoadingBroadcasts,
+        refresh: () => queryClient.invalidateQueries({ queryKey: ['broadcasts'] }),
+        dismissBroadcast
     };
-
-    const dismissBroadcast = async (id: string) => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const key = `${DISMISSED_KEY}_${user.id}`;
-        const stored = localStorage.getItem(key);
-        let dismissedIds: string[] = stored ? JSON.parse(stored) : [];
-
-        if (!dismissedIds.includes(id)) {
-            dismissedIds.push(id);
-            localStorage.setItem(key, JSON.stringify(dismissedIds));
-            setBroadcasts(prev => prev.filter(b => b.id !== id));
-            toast.success('Notification dismissed');
-        }
-    };
-
-    return { broadcasts, isLoading, refresh: fetchBroadcasts, dismissBroadcast };
 }
+
