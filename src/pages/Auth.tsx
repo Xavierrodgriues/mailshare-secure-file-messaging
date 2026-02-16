@@ -82,6 +82,7 @@ export default function Auth() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
 
     // Final check for maintenance mode before processing
     try {
@@ -90,13 +91,13 @@ export default function Auth() {
       if (settingsData.maintenanceMode) {
         setMaintenanceMode(true);
         toast.error('Access restricted: System is currently under maintenance.');
+        setLoading(false);
         return;
       }
     } catch (err) {
       console.error('Submit maintenance check failed:', err);
+      // If check fails, we might want to proceed or stop. proceeding for now.
     }
-
-    setLoading(true);
 
     try {
       if (isLogin) {

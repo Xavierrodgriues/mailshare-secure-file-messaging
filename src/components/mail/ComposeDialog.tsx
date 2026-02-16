@@ -291,7 +291,10 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} &lt;${initialData.to_profi
     if (e.key === 'Enter' && searchTerm && profiles.length > 0) {
       e.preventDefault();
       const profile = profiles[0];
-      setSelectedUsers((prev) => [...prev, profile]);
+      // Prevent duplicate
+      if (!selectedUsers.some(u => u.id === profile.id)) {
+        setSelectedUsers((prev) => [...prev, profile]);
+      }
       setSearchTerm('');
     }
   };
@@ -306,10 +309,13 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} &lt;${initialData.to_profi
       return;
     }
 
+    // Deduplicate users just in case
+    const uniqueUsers = Array.from(new Map(selectedUsers.map(u => [u.id, u])).values());
+
     try {
       await sendMessage.mutateAsync({
-        toUserIds: selectedUsers.map((u) => u.id),
-        toUserProfiles: selectedUsers.map((u) => ({
+        toUserIds: uniqueUsers.map((u) => u.id),
+        toUserProfiles: uniqueUsers.map((u) => ({
           id: u.id,
           name: u.full_name,
           email: u.email,
@@ -564,7 +570,10 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} &lt;${initialData.to_profi
                             key={profile.id}
                             value={profile.email}
                             onSelect={() => {
-                              setSelectedUsers((prev) => [...prev, profile]);
+                              // Prevent duplicate selection
+                              if (!selectedUsers.some(u => u.id === profile.id)) {
+                                setSelectedUsers((prev) => [...prev, profile]);
+                              }
                               setSearchTerm('');
                             }}
                           >
