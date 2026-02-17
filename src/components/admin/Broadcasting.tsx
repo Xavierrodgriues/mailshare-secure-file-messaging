@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { toast } from 'sonner';
 import { Loader2, Send, Megaphone, Trash2, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
+import { triggerConfetti } from '@/lib/confetti';
 
 interface Broadcast {
     id: string;
@@ -74,6 +75,7 @@ export function Broadcasting() {
             if (!response.ok) throw new Error('Failed to create broadcast');
 
             toast.success('Broadcast sent successfully');
+            triggerConfetti();
             setTitle('');
             setMessage('');
             fetchBroadcasts();

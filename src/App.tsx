@@ -6,8 +6,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SearchProvider } from "@/contexts/SearchContext";
 import { FullScreenLoader } from "@/components/ui/FullScreenLoader";
-import { GlobalBroadcastListener } from "@/components/GlobalBroadcastListener";
-import { GlobalMessageListener } from "@/components/GlobalMessageListener";
+import { GlobalMessageListener } from './components/GlobalMessageListener';
+import { WelcomeAnimation } from './components/WelcomeAnimation';
+import { GlobalBroadcastListener } from './components/GlobalBroadcastListener';
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AdminLogin from "./pages/AdminLogin";
@@ -38,6 +39,7 @@ const AppContent = () => {
     >
       <GlobalBroadcastListener />
       <GlobalMessageListener />
+      <WelcomeAnimation />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />

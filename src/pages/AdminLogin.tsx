@@ -20,6 +20,7 @@ import {
     InputOTPGroup,
     InputOTPSlot,
 } from "@/components/ui/input-otp";
+import { triggerConfetti } from '@/lib/confetti';
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api') + '/admin/auth';
 
@@ -96,6 +97,7 @@ export default function AdminLogin() {
                 localStorage.setItem('adminToken', data.token);
                 localStorage.setItem('adminSessionStart', Date.now().toString());
                 toast.success('Admin authentication successful');
+                triggerConfetti();
                 navigate('/admin/dashboard');
             } else {
                 toast.error('Invalid verification code');

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
+import { triggerConfetti } from '@/lib/confetti';
 import { z } from 'zod';
 
 const signUpSchema = z.object({
@@ -134,6 +135,7 @@ export default function Auth() {
           }
         } else {
           toast.success('Welcome back!');
+          triggerConfetti();
         }
       } else {
         const validation = signUpSchema.safeParse(formData);
@@ -152,6 +154,7 @@ export default function Auth() {
           }
         } else {
           toast.success('Account created successfully!');
+          triggerConfetti();
         }
       }
     } finally {
