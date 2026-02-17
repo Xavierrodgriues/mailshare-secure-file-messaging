@@ -134,7 +134,6 @@ export default function Auth() {
             toast.error(error.message);
           }
         } else {
-          toast.success('Welcome back!');
           triggerConfetti();
         }
       } else {
@@ -153,7 +152,6 @@ export default function Auth() {
             toast.error(error.message);
           }
         } else {
-          toast.success('Account created successfully!');
           triggerConfetti();
         }
       }
