@@ -2,6 +2,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import SystemSettings from '../models/SystemSettings.js';
 import Log from '../models/Log.js';
+import Broadcast from '../models/Broadcast.js';
 import { authenticateAdmin } from '../utils/auth.js';
 
 const router = express.Router();
@@ -29,6 +30,17 @@ router.get('/public', async (req, res) => {
     } catch (err) {
         console.error('Error in /public settings:', err);
         res.status(500).json({ error: 'Error fetching public settings' });
+    }
+});
+
+// GET public broadcasts (no auth required)
+router.get('/broadcasts', async (req, res) => {
+    try {
+        const broadcasts = await Broadcast.find().sort({ createdAt: -1 });
+        res.json(broadcasts);
+    } catch (err) {
+        console.error('Error fetching public broadcasts:', err);
+        res.status(500).json({ error: 'Failed to fetch broadcasts' });
     }
 });
 

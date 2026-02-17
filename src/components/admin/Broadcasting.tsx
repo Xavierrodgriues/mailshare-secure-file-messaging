@@ -1,5 +1,5 @@
+
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,8 +12,8 @@ interface Broadcast {
     id: string;
     title: string;
     message: string;
-    created_at: string;
-    created_by: string;
+    createdAt: string;
+    adminId: string;
 }
 
 export function Broadcasting() {
@@ -30,12 +30,18 @@ export function Broadcasting() {
     const fetchBroadcasts = async () => {
         setIsLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('broadcasts')
-                .select('*')
-                .order('created_at', { ascending: false });
+            const token = localStorage.getItem('adminToken');
+            const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api') + '/admin/broadcasts';
 
-            if (error) throw error;
+            const response = await fetch(apiUrl, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch broadcasts');
+
+            const data = await response.json();
             setBroadcasts(data || []);
         } catch (error) {
             console.error('Error fetching broadcasts:', error);
@@ -53,21 +59,19 @@ export function Broadcasting() {
 
         setIsSending(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                toast.error('You must be logged in');
-                return;
-            }
+            const token = localStorage.getItem('adminToken');
+            const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api') + '/admin/broadcasts';
 
-            const { error } = await supabase
-                .from('broadcasts')
-                .insert({
-                    title,
-                    message,
-                    created_by: user.id
-                });
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ title, message })
+            });
 
-            if (error) throw error;
+            if (!response.ok) throw new Error('Failed to create broadcast');
 
             toast.success('Broadcast sent successfully');
             setTitle('');
@@ -85,12 +89,18 @@ export function Broadcasting() {
         if (!confirm('Are you sure you want to delete this broadcast? This will remove it for all users.')) return;
 
         try {
-            const { error } = await supabase
-                .from('broadcasts')
-                .delete()
-                .eq('id', id);
+            const token = localStorage.getItem('adminToken');
+            const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api') + `/admin/broadcasts/${id}`;
 
-            if (error) throw error;
+            const response = await fetch(apiUrl, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to delete broadcast');
+
             toast.success('Broadcast deleted');
             setBroadcasts(prev => prev.filter(b => b.id !== id));
         } catch (error) {
@@ -188,7 +198,7 @@ export function Broadcasting() {
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs text-muted-foreground flex items-center bg-muted px-2 py-1 rounded">
                                                     <Calendar className="h-3 w-3 mr-1" />
-                                                    {format(new Date(broadcast.created_at), 'MMM d, yyyy')}
+                                                    {format(new Date(broadcast.createdAt), 'MMM d, yyyy')}
                                                 </span>
                                                 <button
                                                     onClick={() => handleDelete(broadcast.id)}

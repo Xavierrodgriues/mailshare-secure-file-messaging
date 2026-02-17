@@ -16,7 +16,7 @@ import {
   Bell
 } from 'lucide-react';
 import { useUnreadCount } from '@/hooks/useUnreadCount';
-import { useBroadcasts } from '@/hooks/useBroadcasts';
+
 
 
 const navItems = [
@@ -47,8 +47,8 @@ export function SidebarContent({
 }) {
   const location = useLocation();
   const { data: unreadCount = 0 } = useUnreadCount();
-  const { broadcasts } = useBroadcasts();
-  const notificationCount = broadcasts.length;
+  // const { broadcasts } = useBroadcasts(); // Removed as per instruction to remove notification badge logic
+  // const notificationCount = broadcasts.length; // Removed as per instruction to remove notification badge logic
 
   return (
     <>
@@ -88,7 +88,7 @@ export function SidebarContent({
             const isInbox = item.label === 'Inbox';
             const isNotifications = item.label === 'Notifications';
             const showInboxBadge = isInbox && unreadCount > 0;
-            const showNotificationBadge = isNotifications && notificationCount > 0;
+
 
             // Determine which count to show
             let countToShow = 0;
@@ -96,9 +96,6 @@ export function SidebarContent({
 
             if (showInboxBadge) {
               countToShow = unreadCount;
-              showBadge = true;
-            } else if (showNotificationBadge) {
-              countToShow = notificationCount;
               showBadge = true;
             }
 

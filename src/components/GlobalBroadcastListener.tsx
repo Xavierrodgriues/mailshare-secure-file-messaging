@@ -1,99 +1,70 @@
 import { useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
-import { Broadcast } from '@/hooks/useBroadcasts';
+import { Megaphone } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 export function GlobalBroadcastListener() {
-    const { user } = useAuth();
+    const location = useLocation();
 
-    const CELEBRATED_KEY = 'mailshare_celebrated_broadcasts';
-
+    // Poll for new broadcasts every 5 seconds (near real-time)
     useEffect(() => {
-        if (!user) return;
+        const checkForBroadcasts = async () => {
+            // Don't show toasts on the notifications page itself
+            // Don't show toasts on the notifications page itself or admin routes
+            if (location.pathname === '/notifications' || location.pathname.startsWith('/admin')) return;
 
-        // Check for missed broadcasts on mount/login
-        const checkMissedBroadcasts = async () => {
-            const { data } = await supabase
-                .from('broadcasts')
-                .select('id')
-                .order('created_at', { ascending: false }); // Latest first
+            try {
+                const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api') + '/settings/broadcasts';
+                const response = await fetch(apiUrl);
+                if (!response.ok) return;
 
-            if (data && data.length > 0) {
-                const celebrated = JSON.parse(localStorage.getItem(`${CELEBRATED_KEY}_${user.id}`) || '[]');
-                const dismissed = JSON.parse(localStorage.getItem(`mailshare_dismissed_broadcasts_${user.id}`) || '[]');
+                const broadcasts = await response.json();
+                if (!broadcasts || broadcasts.length === 0) return;
 
-                // Find any broadcast that is NOT celebrated AND NOT dismissed
-                const hasUnseen = data.some(b => !celebrated.includes(b.id) && !dismissed.includes(b.id));
+                // Check local storage for seen broadcasts
+                const seenBroadcasts = JSON.parse(localStorage.getItem('seenBroadcasts') || '[]');
 
-                if (hasUnseen) {
-                    // Trigger confetti
-                    triggerConfetti();
+                // Find new broadcasts
+                const newBroadcasts = broadcasts.filter((b: any) => !seenBroadcasts.includes(b.id || b._id));
 
-                    // Mark all current IDs as celebrated so we don't re-trigger on refresh
-                    const allIds = data.map(b => b.id);
-                    // Merge with existing to keep history if needed, though for this logic just current is fine
-                    // better to just add the ones we found to the list
-                    const newCelebrated = Array.from(new Set([...celebrated, ...allIds]));
-                    localStorage.setItem(`${CELEBRATED_KEY}_${user.id}`, JSON.stringify(newCelebrated));
-                }
-            }
-        };
+                if (newBroadcasts.length > 0) {
+                    const latest = newBroadcasts[0];
 
-        checkMissedBroadcasts();
-
-        const channel = supabase
-            .channel('global-broadcasts')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcasts' }, (payload) => {
-                const newBroadcast = payload.new as Broadcast;
-
-                // Mark this specific one as celebrated immediately
-                const celebrated = JSON.parse(localStorage.getItem(`${CELEBRATED_KEY}_${user.id}`) || '[]');
-                if (!celebrated.includes(newBroadcast.id)) {
-                    localStorage.setItem(`${CELEBRATED_KEY}_${user.id}`, JSON.stringify([...celebrated, newBroadcast.id]));
-
-                    // Show confetti only if tab is visible
-                    if (document.visibilityState === 'visible') {
-                        triggerConfetti();
-                    }
-
-                    // Show toast
-                    toast.info('New System Announcement!', {
-                        description: newBroadcast.title,
-                        duration: 5000,
+                    toast(latest.title, {
+                        description: latest.message,
+                        icon: <Megaphone className="h-4 w-4 text-primary" />,
+                        duration: Infinity,
+                        action: {
+                            label: "View",
+                            onClick: () => window.location.href = '/notifications'
+                        }
                     });
+
+                    // Mark as seen
+                    const updatedSeen = [...seenBroadcasts, ...newBroadcasts.map((b: any) => b.id || b._id)];
+                    localStorage.setItem('seenBroadcasts', JSON.stringify(updatedSeen));
+
+                    // Play notification sound
+                    try {
+                        const audio = new Audio('/notification.mp3');
+                        audio.volume = 0.5;
+                        audio.play().catch(() => { });
+                    } catch (e) {
+                        // Ignore audio errors
+                    }
                 }
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [user]);
-
-    const triggerConfetti = () => {
-        const duration = 5 * 1000;
-        const animationEnd = Date.now() + duration;
-        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
-
-        const randomInRange = (min: number, max: number) => {
-            return Math.random() * (max - min) + min;
-        }
-
-        const interval: any = setInterval(function () {
-            const timeLeft = animationEnd - Date.now();
-
-            if (timeLeft <= 0) {
-                return clearInterval(interval);
+            } catch (error) {
+                console.error('Error fetching broadcasts:', error);
             }
+        };
 
-            const particleCount = 50 * (timeLeft / duration);
-            // since particles fall down, start a bit higher than random
-            confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
-            confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
-        }, 250);
-    };
+        // Initial check
+        checkForBroadcasts();
 
-    return null; // This component doesn't render anything visually
+        // Set interval
+        const interval = setInterval(checkForBroadcasts, 5000);
+        return () => clearInterval(interval);
+    }, [location.pathname]);
+
+    return null;
 }

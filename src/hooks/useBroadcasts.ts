@@ -1,78 +1,60 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
 export interface Broadcast {
-    id: string;
+    _id: string; // MongoDB uses _id
+    id?: string; // Fallback
     title: string;
     message: string;
-    created_at: string;
-    created_by: string;
+    createdAt: string; // MongoDB uses createdAt
+    adminId: string;
 }
 
-const DISMISSED_KEY = 'mailshare_dismissed_broadcasts';
-
 export function useBroadcasts() {
-    const { user } = useAuth();
     const queryClient = useQueryClient();
 
     // Query for server data
-    const { data: allBroadcasts = [], isLoading: isLoadingBroadcasts } = useQuery({
+    const { data: broadcasts = [], isLoading } = useQuery({
         queryKey: ['broadcasts'],
         queryFn: async () => {
-            const { data, error } = await supabase
-                .from('broadcasts')
-                .select('*')
-                .order('created_at', { ascending: false });
+            const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api') + '/settings/broadcasts';
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error('Failed to fetch broadcasts');
 
-            if (error) throw error;
-            return data as Broadcast[];
+            const data = await response.json();
+
+            // Filter out dismissed
+            // Matching the key used in Notifications.tsx
+            const dismissed = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
+
+            return (data || []).filter((b: any) => {
+                // Support both MongoDB _id and generic id
+                const id = b._id || b.id;
+                return !dismissed.includes(id);
+            });
         },
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: 1000 * 60 * 5, // 5 minutes default
     });
 
-    // Query for local dismissed state
-    const { data: dismissedIds = [] } = useQuery({
-        queryKey: ['dismissed_broadcasts', user?.id],
-        queryFn: () => {
-            if (!user) return [];
-            const stored = localStorage.getItem(`${DISMISSED_KEY}_${user.id}`);
-            return stored ? JSON.parse(stored) as string[] : [];
-        },
-        enabled: !!user,
-        staleTime: Infinity, // Rely on invalidation
-    });
+    // Listen for updates from other components
+    useEffect(() => {
+        const handleUpdate = () => {
+            queryClient.invalidateQueries({ queryKey: ['broadcasts'] });
+        };
 
-    // Mutation to dismiss
-    const { mutate: dismissBroadcast } = useMutation({
-        mutationFn: async (id: string) => {
-            if (!user) return;
-            const key = `${DISMISSED_KEY}_${user.id}`;
-            const current = dismissedIds;
-            if (!current.includes(id)) {
-                const updated = [...current, id];
-                localStorage.setItem(key, JSON.stringify(updated));
-                return updated;
-            }
-            return current;
-        },
-        onSuccess: (updatedIds) => {
-            if (updatedIds) {
-                queryClient.setQueryData(['dismissed_broadcasts', user?.id], updatedIds);
-                toast.success('Notification dismissed');
-            }
-        },
-    });
+        window.addEventListener('broadcasts-updated', handleUpdate);
+        window.addEventListener('storage', handleUpdate);
 
-    // Filter logic
-    const broadcasts = allBroadcasts.filter(b => !dismissedIds.includes(b.id));
+        return () => {
+            window.removeEventListener('broadcasts-updated', handleUpdate);
+            window.removeEventListener('storage', handleUpdate);
+        };
+    }, [queryClient]);
 
     return {
         broadcasts,
-        isLoading: isLoadingBroadcasts,
+        isLoading,
         refresh: () => queryClient.invalidateQueries({ queryKey: ['broadcasts'] }),
-        dismissBroadcast
     };
 }
 

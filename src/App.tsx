@@ -35,6 +35,7 @@ const AppContent = () => {
         v7_relativeSplatPath: true,
       }}
     >
+      <GlobalBroadcastListener />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
@@ -60,7 +61,6 @@ const App = () => (
           <Toaster />
           <Sonner />
           <AppContent />
-          <GlobalBroadcastListener />
         </TooltipProvider>
       </SearchProvider>
     </AuthProvider>
