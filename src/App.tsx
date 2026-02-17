@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SearchProvider } from "@/contexts/SearchContext";
 import { FullScreenLoader } from "@/components/ui/FullScreenLoader";
 import { GlobalBroadcastListener } from "@/components/GlobalBroadcastListener";
+import { GlobalMessageListener } from "@/components/GlobalMessageListener";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AdminLogin from "./pages/AdminLogin";
@@ -36,6 +37,7 @@ const AppContent = () => {
       }}
     >
       <GlobalBroadcastListener />
+      <GlobalMessageListener />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
