@@ -32,7 +32,8 @@ export function SystemLogs() {
     useEffect(() => {
         fetchLogs();
 
-        const socket = io('https://mailshare-admin-api.onrender.com');
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const socket = io(apiUrl.replace('/api', ''));
         socket.on('system_log', (newLog: LogEntry) => {
             setLogs(prev => [newLog, ...prev].slice(0, 100));
         });
@@ -46,7 +47,8 @@ export function SystemLogs() {
         setIsLoading(true);
         try {
             const token = localStorage.getItem('adminToken');
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/admin/logs', {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            const response = await fetch(`${apiUrl}/admin/logs`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }

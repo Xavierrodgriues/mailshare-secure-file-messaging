@@ -93,7 +93,8 @@ export function DashboardOverview({ totalUsers, onLogout, refreshTrigger }: Dash
         if (!silent) setLoadingSessions(true);
         try {
             const token = localStorage.getItem('adminToken');
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/admin/sessions', {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            const response = await fetch(`${apiUrl}/admin/sessions`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -127,7 +128,8 @@ export function DashboardOverview({ totalUsers, onLogout, refreshTrigger }: Dash
         setIsRevoking(true);
         try {
             const token = localStorage.getItem('adminToken');
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/admin/sessions/logout-device', {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            const response = await fetch(`${apiUrl}/admin/sessions/logout-device`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -165,7 +167,8 @@ export function DashboardOverview({ totalUsers, onLogout, refreshTrigger }: Dash
 
     const fetchTimezone = async () => {
         try {
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/settings/public');
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            const response = await fetch(`${apiUrl}/settings/public`);
             const data = await response.json();
             if (data.timezone) {
                 setTimezone(data.timezone);

@@ -60,11 +60,20 @@ export default function Auth() {
 
   const checkMaintenance = async () => {
     try {
-      const response = await fetch('https://mailshare-admin-api.onrender.com/api/settings/public');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
+
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${apiUrl}/settings/public`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
       const data = await response.json();
       setMaintenanceMode(!!data.maintenanceMode);
     } catch (error) {
-      console.error('Error checking maintenance mode:', error);
+      console.log('Maintenance check skipped (backend unavailable)');
+      setMaintenanceMode(false);
     }
   };
 
@@ -86,7 +95,15 @@ export default function Auth() {
 
     // Final check for maintenance mode before processing
     try {
-      const resp = await fetch('https://mailshare-admin-api.onrender.com/api/settings/public');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const resp = await fetch(`${apiUrl}/settings/public`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
       const settingsData = await resp.json();
       if (settingsData.maintenanceMode) {
         setMaintenanceMode(true);
@@ -95,8 +112,8 @@ export default function Auth() {
         return;
       }
     } catch (err) {
-      console.error('Submit maintenance check failed:', err);
-      // If check fails, we might want to proceed or stop. proceeding for now.
+      console.log('Submit maintenance check skipped');
+      // If check fails, we proceed
     }
 
     try {

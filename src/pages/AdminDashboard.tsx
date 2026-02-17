@@ -51,7 +51,8 @@ export default function AdminDashboard() {
         }
 
         // Setup Socket.io for real-time updates and notifications
-        socketRef.current = io('https://mailshare-admin-api.onrender.com');
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        socketRef.current = io(apiUrl.replace('/api', ''));
 
         socketRef.current.on('connect', () => {
             console.log('Connected to socket server');
@@ -119,7 +120,8 @@ export default function AdminDashboard() {
                 headers['X-Background-Poll'] = 'true';
             }
 
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/settings', {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            const response = await fetch(`${apiUrl}/settings`, {
                 headers
             });
             if (response.status === 401) {

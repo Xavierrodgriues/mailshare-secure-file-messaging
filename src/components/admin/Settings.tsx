@@ -42,7 +42,8 @@ export function Settings() {
     const fetchStorageStats = async () => {
         try {
             const token = localStorage.getItem('adminToken');
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/admin/storage/stats', {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            const response = await fetch(`${apiUrl}/admin/storage/stats`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -57,7 +58,8 @@ export function Settings() {
     const fetchSettings = async () => {
         try {
             const token = localStorage.getItem('adminToken');
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/settings', {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            const response = await fetch(`${apiUrl}/settings`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -82,7 +84,8 @@ export function Settings() {
     const saveSettings = async (updates: { maintenanceMode?: boolean, domainWhitelistEnabled?: boolean, locale?: string, timezone?: string, shortSessionTimeout?: boolean }) => {
         try {
             const token = localStorage.getItem('adminToken');
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/settings', {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            const response = await fetch(`${apiUrl}/settings`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -113,7 +116,8 @@ export function Settings() {
         setLoading(true);
         try {
             const token = localStorage.getItem('adminToken');
-            const response = await fetch('https://mailshare-admin-api.onrender.com/api/settings', {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            const response = await fetch(`${apiUrl}/settings`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
