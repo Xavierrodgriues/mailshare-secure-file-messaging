@@ -75,7 +75,7 @@ export function GlobalMessageListener() {
                     });
 
                     // 4. System Notification
-                    if (Notification.permission === "granted") {
+                    if ('Notification' in window && Notification.permission === "granted") {
                         try {
                             const n = new Notification("New Message - MailShare", {
                                 body: newMessage.subject || "You have a new message.",
@@ -100,7 +100,7 @@ export function GlobalMessageListener() {
             .subscribe();
 
         // Request permission on mount if not denied
-        if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+        if ('Notification' in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
             Notification.requestPermission();
         }
 
