@@ -251,7 +251,7 @@ export default function Auth() {
                       <Input
                         id="email"
                         type="email"
-                        placeholder="you@example.com"
+                        placeholder="you@yuviiconsultancy.com"
                         className="pl-10"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
