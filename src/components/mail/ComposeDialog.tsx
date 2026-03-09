@@ -263,6 +263,10 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} &lt;${initialData.to_profi
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     for (const file of files) {
+      if (!file.type.startsWith('image/')) {
+        toast.error(`File "${file.name}" is not an image`);
+        return;
+      }
       if (file.size > MAX_FILE_SIZE) {
         toast.error(`File "${file.name}" exceeds 25MB limit`);
         return;
@@ -675,13 +679,14 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} &lt;${initialData.to_profi
               type="file"
               id="file-upload"
               multiple
+              accept="image/*"
               className="hidden"
               onChange={handleFileChange}
             />
             <Button variant="ghost" size="sm" asChild>
               <label htmlFor="file-upload" className="cursor-pointer">
                 <Paperclip className="h-4 w-4 mr-2" />
-                Attach Files
+                Attach Images
               </label>
             </Button>
           </div>
