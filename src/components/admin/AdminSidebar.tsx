@@ -35,11 +35,11 @@ const menuItems = [
         url: "logs",
         icon: FileText,
     },
-    {
-        title: "Broadcasting",
-        url: "broadcasting",
-        icon: Megaphone,
-    },
+    // {
+    //     title: "Broadcasting",
+    //     url: "broadcasting",
+    //     icon: Megaphone,
+    // },
     {
         title: "Settings",
         url: "settings",

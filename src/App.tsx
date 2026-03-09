@@ -37,7 +37,7 @@ const AppContent = () => {
         v7_relativeSplatPath: true,
       }}
     >
-      <GlobalBroadcastListener />
+      {/* <GlobalBroadcastListener /> */}
       <GlobalMessageListener />
       <WelcomeAnimation />
       <Routes>

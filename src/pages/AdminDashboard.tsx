@@ -9,7 +9,7 @@ import { DashboardOverview } from '@/components/admin/DashboardOverview';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { SystemLogs } from '@/components/admin/SystemLogs';
 import { Settings } from '@/components/admin/Settings';
-import { Broadcasting } from '@/components/admin/Broadcasting';
+// import { Broadcasting } from '@/components/admin/Broadcasting';
 import { io, Socket } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -310,8 +310,8 @@ export default function AdminDashboard() {
                         onSearchChange={setSearchQuery}
                     />
                 );
-            case 'broadcasting':
-                return <Broadcasting />;
+            // case 'broadcasting':
+            //     return <Broadcasting />;
             case 'logs':
                 return <SystemLogs />;
             case 'settings':
