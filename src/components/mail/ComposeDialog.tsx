@@ -52,15 +52,28 @@ const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
 export function ComposeDialog({ open, onOpenChange, replyTo, draftId, mode = 'compose', initialData }: ComposeDialogProps) {
   const [selectedUsers, setSelectedUsers] = useState<Profile[]>([]);
+  const [ccUsers, setCcUsers] = useState<Profile[]>([]);
+  const [bccUsers, setBccUsers] = useState<Profile[]>([]);
+  const [showCc, setShowCc] = useState(false);
+  const [showBcc, setShowBcc] = useState(false);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
+  // To-field search
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  // CC-field search
+  const [ccSearchOpen, setCcSearchOpen] = useState(false);
+  const [ccSearchTerm, setCcSearchTerm] = useState('');
+  // BCC-field search
+  const [bccSearchOpen, setBccSearchOpen] = useState(false);
+  const [bccSearchTerm, setBccSearchTerm] = useState('');
   const [isLoadingAllUsers, setIsLoadingAllUsers] = useState(false);
   const [totalUserCount, setTotalUserCount] = useState<number>(0);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const debouncedCcSearchTerm = useDebounce(ccSearchTerm, 300);
+  const debouncedBccSearchTerm = useDebounce(bccSearchTerm, 300);
   const [showRecipientActions, setShowRecipientActions] = useState(false);
   const [signature, setSignature] = useState<string>('');
   const [hasSignatureAppended, setHasSignatureAppended] = useState(false);
@@ -68,6 +81,14 @@ export function ComposeDialog({ open, onOpenChange, replyTo, draftId, mode = 'co
   const { data: profiles = [], isLoading: isSearching } = useProfiles(
     debouncedSearchTerm,
     selectedUsers.map((u) => u.id)
+  );
+  const { data: ccProfiles = [], isLoading: isCcSearching } = useProfiles(
+    debouncedCcSearchTerm,
+    ccUsers.map((u) => u.id)
+  );
+  const { data: bccProfiles = [], isLoading: isBccSearching } = useProfiles(
+    debouncedBccSearchTerm,
+    bccUsers.map((u) => u.id)
   );
 
   const sendMessage = useSendMessage();
@@ -239,11 +260,17 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} &lt;${initialData.to_profi
 
   const handleClose = () => {
     setSelectedUsers([]);
+    setCcUsers([]);
+    setBccUsers([]);
+    setShowCc(false);
+    setShowBcc(false);
     setSubject('');
     setBody('');
     setAttachments([]);
     setExistingAttachments([]);
     setSearchTerm('');
+    setCcSearchTerm('');
+    setBccSearchTerm('');
     setCurrentDraftId(null);
     setHasSignatureAppended(false);
     onOpenChange(false);
@@ -315,11 +342,25 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} &lt;${initialData.to_profi
 
     // Deduplicate users just in case
     const uniqueUsers = Array.from(new Map(selectedUsers.map(u => [u.id, u])).values());
+    const uniqueCcUsers = Array.from(new Map(ccUsers.map(u => [u.id, u])).values());
+    const uniqueBccUsers = Array.from(new Map(bccUsers.map(u => [u.id, u])).values());
 
     try {
       await sendMessage.mutateAsync({
         toUserIds: uniqueUsers.map((u) => u.id),
         toUserProfiles: uniqueUsers.map((u) => ({
+          id: u.id,
+          name: u.full_name,
+          email: u.email,
+        })),
+        ccUserIds: uniqueCcUsers.map((u) => u.id),
+        ccUserProfiles: uniqueCcUsers.map((u) => ({
+          id: u.id,
+          name: u.full_name,
+          email: u.email,
+        })),
+        bccUserIds: uniqueBccUsers.map((u) => u.id),
+        bccUserProfiles: uniqueBccUsers.map((u) => ({
           id: u.id,
           name: u.full_name,
           email: u.email,
@@ -456,6 +497,27 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} &lt;${initialData.to_profi
             <div className="flex justify-between items-center h-8">
               <Label>To</Label>
               <div className="flex items-center gap-1">
+                {/* Cc / Bcc toggles */}
+                {!showCc && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowCc(true)}
+                  >
+                    Cc
+                  </Button>
+                )}
+                {!showBcc && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowBcc(true)}
+                  >
+                    Bcc
+                  </Button>
+                )}
                 {showRecipientActions && (
                   <div className="flex items-center gap-1 mr-1 animate-in fade-in slide-in-from-right-4 duration-300">
                     <Button
@@ -574,7 +636,6 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} &lt;${initialData.to_profi
                             key={profile.id}
                             value={profile.email}
                             onSelect={() => {
-                              // Prevent duplicate selection
                               if (!selectedUsers.some(u => u.id === profile.id)) {
                                 setSelectedUsers((prev) => [...prev, profile]);
                               }
@@ -594,6 +655,202 @@ To: ${initialData.to_profile?.full_name || 'Unknown'} &lt;${initialData.to_profi
               </PopoverContent>
             </Popover>
           </div>
+
+          {/* CC Field */}
+          {showCc && (
+            <div className="space-y-2">
+              <div className="flex justify-between items-center h-8">
+                <Label>Cc</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                  onClick={() => { setShowCc(false); setCcUsers([]); setCcSearchTerm(''); }}
+                >
+                  <X className="h-3 w-3 mr-1" /> Remove
+                </Button>
+              </div>
+              <Popover open={ccSearchOpen} onOpenChange={setCcSearchOpen}>
+                <PopoverTrigger asChild>
+                  <div
+                    className="flex flex-wrap gap-2 p-2 border rounded-md min-h-[42px] items-center cursor-text transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+                    onClick={() => setCcSearchOpen(true)}
+                  >
+                    {ccUsers.map((user) => (
+                      <div
+                        key={user.id}
+                        className="flex items-center gap-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-md text-sm"
+                      >
+                        <span>{user.full_name}</span>
+                        <span className="text-xs opacity-70 hidden sm:inline">&lt;{user.email}&gt;</span>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setCcUsers(prev => prev.filter(u => u.id !== user.id)); }}
+                          className="ml-1 hover:text-destructive focus:outline-none"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                    <input
+                      className="flex-1 bg-transparent border-none outline-none text-sm min-w-[120px]"
+                      placeholder={ccUsers.length === 0 ? "Add CC recipients..." : ""}
+                      value={ccSearchTerm}
+                      onChange={(e) => { setCcSearchTerm(e.target.value); if (!ccSearchOpen) setCcSearchOpen(true); }}
+                      onFocus={() => setCcSearchOpen(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Backspace' && ccSearchTerm === '' && ccUsers.length > 0) {
+                          setCcUsers(prev => prev.slice(0, -1));
+                        }
+                        if (e.key === 'Enter' && ccSearchTerm && ccProfiles.length > 0) {
+                          e.preventDefault();
+                          const profile = ccProfiles[0];
+                          if (!ccUsers.some(u => u.id === profile.id)) setCcUsers(prev => [...prev, profile]);
+                          setCcSearchTerm('');
+                        }
+                      }}
+                    />
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-[calc(100vw-32px)] sm:w-[550px] p-0"
+                  align="start"
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                >
+                  <Command shouldFilter={false}>
+                    <div className="hidden"><CommandInput value={ccSearchTerm} onValueChange={setCcSearchTerm} /></div>
+                    <CommandList>
+                      {!debouncedCcSearchTerm || debouncedCcSearchTerm.length < 2 ? (
+                        <div className="py-6 text-center text-sm text-muted-foreground">Type at least 2 characters to search...</div>
+                      ) : isCcSearching ? (
+                        <div className="py-6 text-center text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />Searching...
+                        </div>
+                      ) : ccProfiles.length === 0 ? (
+                        <CommandEmpty>No users found.</CommandEmpty>
+                      ) : (
+                        <CommandGroup>
+                          {ccProfiles.map((profile) => (
+                            <CommandItem
+                              key={profile.id}
+                              value={profile.email}
+                              onSelect={() => {
+                                if (!ccUsers.some(u => u.id === profile.id)) setCcUsers(prev => [...prev, profile]);
+                                setCcSearchTerm('');
+                              }}
+                            >
+                              <div className="flex flex-col">
+                                <span>{profile.full_name}</span>
+                                <span className="text-xs">{profile.email}</span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      )}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          {/* BCC Field */}
+          {showBcc && (
+            <div className="space-y-2">
+              <div className="flex justify-between items-center h-8">
+                <Label>Bcc</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                  onClick={() => { setShowBcc(false); setBccUsers([]); setBccSearchTerm(''); }}
+                >
+                  <X className="h-3 w-3 mr-1" /> Remove
+                </Button>
+              </div>
+              <Popover open={bccSearchOpen} onOpenChange={setBccSearchOpen}>
+                <PopoverTrigger asChild>
+                  <div
+                    className="flex flex-wrap gap-2 p-2 border rounded-md min-h-[42px] items-center cursor-text transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+                    onClick={() => setBccSearchOpen(true)}
+                  >
+                    {bccUsers.map((user) => (
+                      <div
+                        key={user.id}
+                        className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-md text-sm"
+                      >
+                        <span>{user.full_name}</span>
+                        <span className="text-xs opacity-70 hidden sm:inline">&lt;{user.email}&gt;</span>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setBccUsers(prev => prev.filter(u => u.id !== user.id)); }}
+                          className="ml-1 hover:text-destructive focus:outline-none"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                    <input
+                      className="flex-1 bg-transparent border-none outline-none text-sm min-w-[120px]"
+                      placeholder={bccUsers.length === 0 ? "Add BCC recipients..." : ""}
+                      value={bccSearchTerm}
+                      onChange={(e) => { setBccSearchTerm(e.target.value); if (!bccSearchOpen) setBccSearchOpen(true); }}
+                      onFocus={() => setBccSearchOpen(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Backspace' && bccSearchTerm === '' && bccUsers.length > 0) {
+                          setBccUsers(prev => prev.slice(0, -1));
+                        }
+                        if (e.key === 'Enter' && bccSearchTerm && bccProfiles.length > 0) {
+                          e.preventDefault();
+                          const profile = bccProfiles[0];
+                          if (!bccUsers.some(u => u.id === profile.id)) setBccUsers(prev => [...prev, profile]);
+                          setBccSearchTerm('');
+                        }
+                      }}
+                    />
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-[calc(100vw-32px)] sm:w-[550px] p-0"
+                  align="start"
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                >
+                  <Command shouldFilter={false}>
+                    <div className="hidden"><CommandInput value={bccSearchTerm} onValueChange={setBccSearchTerm} /></div>
+                    <CommandList>
+                      {!debouncedBccSearchTerm || debouncedBccSearchTerm.length < 2 ? (
+                        <div className="py-6 text-center text-sm text-muted-foreground">Type at least 2 characters to search...</div>
+                      ) : isBccSearching ? (
+                        <div className="py-6 text-center text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />Searching...
+                        </div>
+                      ) : bccProfiles.length === 0 ? (
+                        <CommandEmpty>No users found.</CommandEmpty>
+                      ) : (
+                        <CommandGroup>
+                          {bccProfiles.map((profile) => (
+                            <CommandItem
+                              key={profile.id}
+                              value={profile.email}
+                              onSelect={() => {
+                                if (!bccUsers.some(u => u.id === profile.id)) setBccUsers(prev => [...prev, profile]);
+                                setBccSearchTerm('');
+                              }}
+                            >
+                              <div className="flex flex-col">
+                                <span>{profile.full_name}</span>
+                                <span className="text-xs">{profile.email}</span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      )}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
 
           {/* Subject */}
           <div className="space-y-2">

@@ -301,19 +301,62 @@ export function MessageThread({ messageId, onBack }: MessageThreadProps) {
                                                 <span className="font-semibold text-sm">{senderName}</span>
                                                 <span className="text-xs text-muted-foreground">&lt;{msg.from_profile?.email}&gt;</span>
                                             </div>
-                                            <div className="text-xs text-muted-foreground">
-                                                to{' '}
-                                                {msg.recipients && msg.recipients.length > 0
-                                                    ? msg.recipients.map((r, idx) => (
-                                                        <span key={idx}>
-                                                            {r.name} &lt;{r.email}&gt;
-                                                            {idx < msg.recipients!.length - 1 && ', '}
-                                                        </span>
-                                                    ))
-                                                    : msg.to_profile
-                                                        ? `${msg.to_profile.full_name} <${msg.to_profile.email}>`
-                                                        : 'Unknown'}
-                                            </div>
+                                            {(() => {
+                                                const hasTyped = msg.recipients && msg.recipients.some((r: any) => r.type);
+                                                const toRecipients = hasTyped
+                                                    ? (msg.recipients as any[]).filter((r) => r.type === 'to' || !r.type)
+                                                    : msg.recipients;
+                                                const ccRecipients = hasTyped
+                                                    ? (msg.recipients as any[]).filter((r) => r.type === 'cc')
+                                                    : [];
+                                                const bccRecipients = (isMe && hasTyped)
+                                                    ? (msg.recipients as any[]).filter((r) => r.type === 'bcc')
+                                                    : [];
+                                                return (
+                                                    <>
+                                                        {/* Only show "to" row when there are actual TO recipients.
+                                                          BCC-only delivery rows (hasTyped true, toRecipients empty)
+                                                          must not fall back to to_profile or BCC person shows in both rows. */}
+                                                        {(toRecipients && toRecipients.length > 0) || !hasTyped ? (
+                                                            <div className="text-xs text-muted-foreground">
+                                                                to{' '}
+                                                                {toRecipients && toRecipients.length > 0
+                                                                    ? toRecipients.map((r: any, idx: number) => (
+                                                                        <span key={idx}>
+                                                                            {r.name} &lt;{r.email}&gt;
+                                                                            {idx < toRecipients.length - 1 && ', '}
+                                                                        </span>
+                                                                    ))
+                                                                    : msg.to_profile
+                                                                        ? `${msg.to_profile.full_name} <${msg.to_profile.email}>`
+                                                                        : 'Unknown'}
+                                                            </div>
+                                                        ) : null}
+                                                        {ccRecipients.length > 0 && (
+                                                            <div className="text-xs text-muted-foreground">
+                                                                cc{' '}
+                                                                {ccRecipients.map((r: any, idx: number) => (
+                                                                    <span key={idx}>
+                                                                        {r.name} &lt;{r.email}&gt;
+                                                                        {idx < ccRecipients.length - 1 && ', '}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                        {bccRecipients.length > 0 && (
+                                                            <div className="text-xs text-muted-foreground">
+                                                                <span className="font-medium text-amber-600 dark:text-amber-400">bcc</span>{' '}
+                                                                {bccRecipients.map((r: any, idx: number) => (
+                                                                    <span key={idx}>
+                                                                        {r.name} &lt;{r.email}&gt;
+                                                                        {idx < bccRecipients.length - 1 && ', '}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                );
+                                            })()}
                                             <div className="text-xs text-muted-foreground">
                                                 {format(new Date(msg.created_at), 'PPP p')}
                                             </div>

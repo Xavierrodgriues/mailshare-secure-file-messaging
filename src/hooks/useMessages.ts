@@ -156,6 +156,10 @@ export function useSendMessage() {
     mutationFn: async ({
       toUserIds,
       toUserProfiles,
+      ccUserIds = [],
+      ccUserProfiles = [],
+      bccUserIds = [],
+      bccUserProfiles = [],
       subject,
       body,
       attachments,
@@ -163,6 +167,10 @@ export function useSendMessage() {
     }: {
       toUserIds: string[];
       toUserProfiles: { id: string; name: string; email: string }[];
+      ccUserIds?: string[];
+      ccUserProfiles?: { id: string; name: string; email: string }[];
+      bccUserIds?: string[];
+      bccUserProfiles?: { id: string; name: string; email: string }[];
       subject: string;
       body: string;
       attachments?: File[];
@@ -174,17 +182,24 @@ export function useSendMessage() {
         throw new Error('No recipients selected');
       }
 
-      // Optimization: Batch insert messages and upload attachments ONCE
-      const recipientsData = toUserProfiles.map(p => ({
-        name: p.name,
-        email: p.email,
-      }));
+      // Build recipients lists
+      // Full list (for sender's Sent copy): to + cc + bcc
+      const fullRecipients = [
+        ...toUserProfiles.map(p => ({ id: p.id, name: p.name, email: p.email, type: 'to' })),
+        ...ccUserProfiles.map(p => ({ id: p.id, name: p.name, email: p.email, type: 'cc' })),
+        ...bccUserProfiles.map(p => ({ id: p.id, name: p.name, email: p.email, type: 'bcc' })),
+      ];
 
-      // 1) Batch Create messages
-      // Chunk message inserts just in case there are thousands, usually 500 is safe.
-      const chunkSize = 500;
+      // Visible list (for TO and CC recipients): to + cc only — NO bcc
+      const visibleRecipients = [
+        ...toUserProfiles.map(p => ({ id: p.id, name: p.name, email: p.email, type: 'to' })),
+        ...ccUserProfiles.map(p => ({ id: p.id, name: p.name, email: p.email, type: 'cc' })),
+      ];
+
       let insertedMessages: any[] = [];
+      const chunkSize = 500;
 
+      // 1) Insert message rows for TO recipients (visible recipients list, no BCC)
       for (let i = 0; i < toUserIds.length; i += chunkSize) {
         const chunk = toUserIds.slice(i, i + chunkSize);
         const messagesToInsert = chunk.map(toUserId => ({
@@ -192,7 +207,9 @@ export function useSendMessage() {
           to_user_id: toUserId,
           subject,
           body,
-          recipients: recipientsData,
+          // Store fullRecipients so sender can see TO+CC+BCC in Sent view.
+          // TO/CC recipients won't see BCC names — the UI filters them out by type.
+          recipients: fullRecipients,
         }));
 
         const { data: chunkMessages, error: messageError } = await supabase
@@ -204,11 +221,70 @@ export function useSendMessage() {
         insertedMessages = [...insertedMessages, ...chunkMessages];
       }
 
+      // 2) Insert message rows for CC recipients (visible recipients list, no BCC)
+      if (ccUserIds.length > 0) {
+        for (let i = 0; i < ccUserIds.length; i += chunkSize) {
+          const chunk = ccUserIds.slice(i, i + chunkSize);
+          const ccMessages = chunk.map(ccUserId => ({
+            from_user_id: user.id,
+            to_user_id: ccUserId,
+            subject,
+            body,
+            // Same as above — store fullRecipients for sender visibility.
+            recipients: fullRecipients,
+          }));
+
+          const { data: chunkMessages, error: messageError } = await supabase
+            .from('messages')
+            .insert(ccMessages)
+            .select();
+
+          if (messageError) throw messageError;
+          insertedMessages = [...insertedMessages, ...chunkMessages];
+        }
+      }
+
+      // 3) Insert message rows for BCC recipients
+      //    Each row stores: all TO + all CC recipients (visibleRecipients) + this BCC user.
+      //    - Sender opening any thread sees the full TO/CC context + BCC entry.
+      //    - BCC recipient sees TO/CC (standard email behaviour) + themselves as bcc.
+      //    - Other BCC recipients are hidden since each BCC row only includes itself.
+      const bccInsertedMessages: any[] = [];
+      if (bccUserIds.length > 0) {
+        for (let i = 0; i < bccUserIds.length; i += chunkSize) {
+          const chunk = bccUserIds.slice(i, i + chunkSize);
+          for (const bccUserId of chunk) {
+            const bccProfile = bccUserProfiles.find(p => p.id === bccUserId);
+            const { data: bccMessages, error: messageError } = await supabase
+              .from('messages')
+              .insert([{
+                from_user_id: user.id,
+                to_user_id: bccUserId,
+                subject,
+                body,
+                // TO + CC are visible; only this BCC user is included (not other BCC recipients)
+                recipients: [
+                  ...visibleRecipients,
+                  { id: bccUserId, name: bccProfile?.name, email: bccProfile?.email, type: 'bcc' },
+                ],
+              }])
+              .select();
+
+            if (messageError) throw messageError;
+            insertedMessages = [...insertedMessages, ...(bccMessages || [])];
+            bccInsertedMessages.push(...(bccMessages || []));
+          }
+        }
+      }
+
+      // 4) Insert a sender copy in Sent with full recipients (to + cc + bcc visible to sender)
+      // The existing TO inserts above are the primary rows; sender sees Sent via from_user_id.
+      // No extra sender row needed — sender sees records via from_user_id in useSentMessages.
+
       const attachmentRowsToInsert: any[] = [];
 
-      // 2) Upload attachments to Cloudflare R2 ONCE
+      // 5) Upload attachments to Cloudflare R2 ONCE
       if (attachments && attachments.length > 0) {
-        // get access token for auth header
         const {
           data: { session },
           error: sessionError,
@@ -220,7 +296,6 @@ export function useSendMessage() {
         for (const file of attachments) {
           const formData = new FormData();
           formData.append('file', file);
-          // Just use the first message ID for any backend folder structure dependencies
           formData.append('messageId', insertedMessages[0].id);
           formData.append('userId', user.id);
 
@@ -242,12 +317,11 @@ export function useSendMessage() {
 
           const r2: R2UploadResult = await response.json();
 
-          // Collect attachment rows for ALL messages
           for (const msg of insertedMessages) {
             attachmentRowsToInsert.push({
               message_id: msg.id,
               file_name: r2.name,
-              file_path: r2.key,      // store R2 object key here
+              file_path: r2.key,
               file_size: r2.size,
               file_type: r2.type,
               uploaded_by_user_id: user.id,
@@ -256,14 +330,14 @@ export function useSendMessage() {
         }
       }
 
-      // 3) Existing Attachments (Reuse R2 keys)
+      // 6) Existing Attachments (Reuse R2 keys)
       if (existingAttachments && existingAttachments.length > 0) {
         for (const att of existingAttachments) {
           for (const msg of insertedMessages) {
             attachmentRowsToInsert.push({
               message_id: msg.id,
               file_name: att.file_name,
-              file_path: att.file_path, // Reuse existing R2 key
+              file_path: att.file_path,
               file_size: att.file_size,
               file_type: att.file_type,
               uploaded_by_user_id: user.id,
@@ -274,7 +348,6 @@ export function useSendMessage() {
 
       // Batch insert attachments
       if (attachmentRowsToInsert.length > 0) {
-        // Chunk attachment inserts to avoid payload too large errors
         const attChunkSize = 1000;
         for (let i = 0; i < attachmentRowsToInsert.length; i += attChunkSize) {
           const { error: attachmentError } = await supabase

@@ -142,17 +142,61 @@ export function MessageDetail({ message, onBack }: MessageDetailProps) {
                 <span className="font-medium">{senderName}</span>
                 <span className="text-sm text-muted-foreground">&lt;{senderEmail}&gt;</span>
               </div>
-              <div className="text-sm text-muted-foreground">
-                to{' '}
-                {message.recipients && message.recipients.length > 0
-                  ? message.recipients.map((r, index) => (
-                    <span key={index}>
-                      {r.name} &lt;{r.email}&gt;
-                      {index < message.recipients!.length - 1 && ', '}
-                    </span>
-                  ))
-                  : `${recipientName} <${recipientEmail}>`}
-              </div>
+              {(() => {
+                const hasTyped = message.recipients && message.recipients.some((r: any) => r.type);
+                const toRecipients = hasTyped
+                  ? (message.recipients as any[]).filter((r) => r.type === 'to' || !r.type)
+                  : message.recipients;
+                const ccRecipients = hasTyped
+                  ? (message.recipients as any[]).filter((r) => r.type === 'cc')
+                  : [];
+                const bccRecipients = (isSender && hasTyped)
+                  ? (message.recipients as any[]).filter((r) => r.type === 'bcc')
+                  : [];
+                return (
+                  <>
+                    {/* Only show "to" row when there are actual TO recipients.
+                      When hasTyped is true but toRecipients is empty, this is a BCC-only
+                      delivery row — suppress the "to" line to avoid showing the BCC person
+                      as a "to" recipient. Fall back to to_profile only for old un-typed data. */}
+                    {(toRecipients && toRecipients.length > 0) || !hasTyped ? (
+                      <div className="text-sm text-muted-foreground">
+                        to{' '}
+                        {toRecipients && toRecipients.length > 0
+                          ? toRecipients.map((r: any, index: number) => (
+                            <span key={index}>
+                              {r.name} &lt;{r.email}&gt;
+                              {index < toRecipients.length - 1 && ', '}
+                            </span>
+                          ))
+                          : `${recipientName} <${recipientEmail}>`}
+                      </div>
+                    ) : null}
+                    {ccRecipients.length > 0 && (
+                      <div className="text-sm text-muted-foreground">
+                        cc{' '}
+                        {ccRecipients.map((r: any, index: number) => (
+                          <span key={index}>
+                            {r.name} &lt;{r.email}&gt;
+                            {index < ccRecipients.length - 1 && ', '}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {bccRecipients.length > 0 && (
+                      <div className="text-sm text-muted-foreground">
+                        <span className="font-medium text-amber-600 dark:text-amber-400">bcc</span>{' '}
+                        {bccRecipients.map((r: any, index: number) => (
+                          <span key={index}>
+                            {r.name} &lt;{r.email}&gt;
+                            {index < bccRecipients.length - 1 && ', '}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
               <div className="text-xs text-muted-foreground mt-1">
                 {format(new Date(message.created_at), 'PPpp')}
               </div>
